@@ -16,8 +16,11 @@ from pathlib import Path
 # They coincide in a combined checkout. Point DATA_ROOT at a separate (private)
 # skills repo by setting SKILL_SYNC_HOME.
 TOOL_ROOT = Path(__file__).resolve().parent.parent
+_HOME_FILE = Path.home() / ".skill-sync" / "home"  # remembers DATA_ROOT across runs
 if os.environ.get("SKILL_SYNC_HOME"):
     DATA_ROOT = Path(os.path.expanduser(os.environ["SKILL_SYNC_HOME"])).resolve()
+elif _HOME_FILE.is_file() and _HOME_FILE.read_text().strip():
+    DATA_ROOT = Path(os.path.expanduser(_HOME_FILE.read_text().strip())).resolve()
 else:
     DATA_ROOT = TOOL_ROOT
 REGISTRY_FILE = TOOL_ROOT / "config" / "registry.json"
