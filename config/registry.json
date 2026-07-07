@@ -1,0 +1,19 @@
+{
+  "_comment": "Catalog of known AI agents and where they keep their skills, per OS. Order = priority (earlier wins when the same new skill exists in several agents). Paths support ~ and env vars; add a 'windows'/'macos'/'linux' key to override 'default' for that OS.",
+  "agents": [
+    { "name": "claude",    "display": "Claude Code",       "paths": { "default": "~/.claude/skills" } },
+    { "name": "codex",     "display": "Codex CLI",         "paths": { "default": "~/.codex/skills" } },
+    { "name": "workbuddy", "display": "WorkBuddy",         "paths": { "default": "~/.workbuddy/skills" } },
+    { "name": "hermes",    "display": "Hermes",            "paths": { "default": "~/.hermes/skills" } },
+    { "name": "gemini",    "display": "Gemini CLI",        "paths": { "default": "~/.gemini/skills" } },
+    { "name": "cursor",    "display": "Cursor",            "paths": { "default": "~/.cursor/skills" } },
+    { "name": "copilot",   "display": "GitHub Copilot CLI","paths": { "default": "~/.copilot/skills" } },
+    { "name": "codebuddy", "display": "CodeBuddy",         "paths": { "default": "~/.codebuddy/skills" } },
+    { "name": "qoder",     "display": "Qoder",             "paths": { "default": "~/.qoder/skills" } },
+    { "name": "trae",      "display": "Trae",              "paths": { "default": "~/.trae/skills" } },
+    { "name": "windsurf",  "display": "Windsurf (Codeium)","paths": { "default": "~/.codeium/windsurf/skills" } },
+    { "name": "opencode",  "display": "OpenCode",          "paths": { "default": "~/.config/opencode/skills", "windows": "%APPDATA%/opencode/skills" } },
+    { "name": "kiro",      "display": "Kiro",              "paths": { "default": "~/.kiro/skills" } },
+    { "name": "openclaw",  "display": "OpenClaw",          "paths": { "default": "~/.openclaw/skills" } }
+  ]
+}

@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+
+# skill-sync local state / logs
+.skill-sync/
+backups/
+
+# user data — belongs to a skills library (DATA_ROOT), not the tool repo.
+# Only the tool's own bundled skill is tracked here.
+config/agents.json
+skills/*
+!skills/skill-sync/

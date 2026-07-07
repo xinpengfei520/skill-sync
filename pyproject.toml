@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skill-sync"
+version = "0.3.0"
+description = "One Git-managed source of truth for AI-agent Skills; mirror to every agent via symlinks."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Xin Vance", email = "xinpengfei520@gmail.com" }]
+keywords = ["ai", "agents", "skills", "claude", "codex", "symlink", "sync"]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/xinpengfei520/skill-sync"
+Repository = "https://github.com/xinpengfei520/skill-sync"
+
+[project.scripts]
+skill-sync = "skillsync.cli:main"
+
+[tool.setuptools]
+packages = ["skillsync"]
