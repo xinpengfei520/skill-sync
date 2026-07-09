@@ -114,6 +114,7 @@ git add -A && git commit -m "sync skills" && git push
 |---|---|
 | `init [--all\|--agents a,b]` | Detect installed agents, pick which to manage, save config, sync |
 | `sync [--apply]` | Collect + mirror. Dry-run unless `--apply` |
+| `uninstall <skill> … [--apply]` | Remove skill(s) from the library and every agent. Dry-run unless `--apply` |
 | `status` | Platform, agent table, auto-sync state, and a dry-run summary |
 | `list` | All known agents with installed / managed state |
 | `watch --interval 10m` | Foreground loop; sync every interval |

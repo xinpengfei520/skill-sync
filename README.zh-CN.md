@@ -107,6 +107,7 @@ git add -A && git commit -m "sync skills" && git push
 |---|---|
 | `init [--all\|--agents a,b]` | 探测已安装 Agent，选择要管理的，保存配置并同步 |
 | `sync [--apply]` | 收集 + 镜像。不加 `--apply` 为 dry-run |
+| `uninstall <skill> … [--apply]` | 从库和所有 Agent 中移除 skill。不加 `--apply` 为 dry-run |
 | `status` | 平台、Agent 表、自动同步状态，以及一次 dry-run 概览 |
 | `list` | 列出所有已知 Agent 及其安装/纳管状态 |
 | `watch --interval 10m` | 前台循环，按间隔同步 |

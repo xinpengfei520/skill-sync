@@ -111,6 +111,7 @@ git add -A && git commit -m "sync skills" && git push
 |---|---|
 | `init [--all\|--agents a,b]` | エージェントを検出し、管理対象を選び、設定を保存して同期 |
 | `sync [--apply]` | 収集 + ミラー。`--apply` なしはドライラン |
+| `uninstall <skill> … [--apply]` | ライブラリと全エージェントからスキルを削除。`--apply` なしはドライラン |
 | `status` | プラットフォーム、エージェント一覧、自動同期の状態、ドライラン概要 |
 | `list` | 既知のすべてのエージェントとその状態を表示 |
 | `watch --interval 10m` | フォアグラウンドで一定間隔ごとに同期 |

@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **`uninstall` command** — `skill-sync uninstall <skill> [<skill> …]` removes a
+  skill from the library and every installed agent in one pass: it deletes
+  `skills/<name>` (backed up first unless `--no-backup`) and removes every
+  mirrored symlink that points into the library, including dangling links left
+  behind after a skill is gone (orphan cleanup). Dry-run by default; `--apply`
+  executes. Honors the safety invariants: a real directory or a link to an
+  outside hub is reported and left untouched, never deleted. `--commit`/`--push`
+  optionally commit the removal to the DATA repo.
+
 ## [0.3.0] — 2026-07-07
 
 ### Added

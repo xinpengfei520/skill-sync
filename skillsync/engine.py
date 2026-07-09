@@ -285,3 +285,119 @@ def report(plan: dict, apply: bool, do_backup: bool, quiet: bool = False) -> Non
 
 def has_conflicts(plan: dict) -> bool:
     return bool(plan["conflicts"])
+
+
+# --- uninstall --------------------------------------------------------------
+def build_uninstall_plan(agent_list: list[dict], names: list[str],
+                         library: Path | None = None) -> dict:
+    """Plan removal of one or more skills: delete each from the library and
+    remove every mirrored symlink that points into the library. Real
+    directories and links to outside hubs are reported and left untouched.
+    Also reclaims dangling links left behind by a skill already gone from the
+    library (orphan cleanup for a specific name)."""
+    library = library or A.skills_root()
+    lib = library_skills(library)
+    installed = [a for a in agent_list if a["installed"]]
+
+    remove_lib, remove_links, skipped, not_found = [], [], [], []
+    seen: list[str] = []
+    for name in names:
+        if name in seen:
+            continue
+        seen.append(name)
+        if name in lib:
+            remove_lib.append({"name": name, "src": library / name})
+        else:
+            not_found.append({"name": name})
+        desired = str((library / name).resolve())
+        for agent in installed:
+            sd = agent["skills_dir"]
+            if not sd or not sd.is_dir():
+                continue
+            dst = sd / name
+            if A.is_link(dst):
+                real = os.path.realpath(dst)
+                if real == desired or (_points_into(dst, library)
+                                       and Path(real).name == name):
+                    remove_links.append({"agent": agent["name"], "name": name,
+                                         "dst": dst})
+                elif _points_into(dst, library):
+                    skipped.append({"agent": agent["name"], "name": name,
+                                    "why": "link into library, different target"})
+                else:
+                    skipped.append({"agent": agent["name"], "name": name,
+                                    "why": "external -> "
+                                           + (A.link_target(dst) or real)})
+            elif dst.exists():
+                skipped.append({"agent": agent["name"], "name": name,
+                                "why": "real directory"})
+
+    return {"library": library, "remove_lib": remove_lib,
+            "remove_links": remove_links, "skipped": skipped,
+            "not_found": not_found, "installed": installed}
+
+
+def execute_uninstall(plan: dict, do_backup: bool) -> None:
+    library = plan["library"]
+    stamp = _dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup_dir = A.BACKUP_ROOT / ("uninstall-" + stamp)
+
+    # Remove mirrored links first so deleting the library copy can't strand them.
+    for item in plan["remove_links"]:
+        dst = item["dst"]
+        if A.is_link(dst):
+            A.remove_link(dst)
+    for item in plan["remove_lib"]:
+        src = item["src"]
+        if do_backup and src.is_dir() and not A.is_link(src):
+            bdst = backup_dir / item["name"]
+            bdst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(src, bdst, symlinks=True)
+        if A.is_link(src):
+            A.remove_link(src)
+        elif src.is_dir():
+            shutil.rmtree(src)
+
+
+def report_uninstall(plan: dict, apply: bool, do_backup: bool,
+                     quiet: bool = False) -> None:
+    C = _C
+    lib, links = plan["remove_lib"], plan["remove_links"]
+    skipped, missing = plan["skipped"], plan["not_found"]
+    if quiet:
+        print(f"skill-sync uninstall: {'applied' if apply else 'dry-run'} — "
+              f"{len(lib)} library skill(s), {len(links)} link(s), "
+              f"{len(skipped)} skipped")
+        return
+
+    verb = "" if apply else "would "
+    print(f"\n{C.BOLD}skill-sync uninstall — {'APPLY' if apply else 'DRY-RUN'}"
+          f"{C.RESET}")
+    print(f"{C.DIM}library: {plan['library']}{C.RESET}")
+
+    def section(title, items, color, fmt):
+        if not items:
+            return
+        print(f"\n{color}{C.BOLD}{title} ({len(items)}){C.RESET}")
+        for it in items:
+            print("  " + fmt(it))
+
+    section(f"REMOVE — {verb}delete from library"
+            + ("" if not do_backup else " (backed up)"), lib, C.RED,
+            lambda i: f"{i['name']:<28} {C.DIM}{i['src']}{C.RESET}")
+    section(f"UNLINK — {verb}remove mirrored symlink", links, C.BLUE,
+            lambda i: f"{i['agent']}/{i['name']}")
+    section("SKIPPED — real dir / external link, LEFT UNTOUCHED", skipped,
+            C.YELLOW, lambda i: f"{i['agent']}/{i['name']} "
+                                f"{C.DIM}({i['why']}){C.RESET}")
+    section("NOT IN LIBRARY — no central copy to remove", missing, C.DIM,
+            lambda i: f"{i['name']}")
+
+    print(f"\n{C.BOLD}Summary{C.RESET}")
+    print(f"  remove {len(lib)}  unlink {len(links)}  "
+          f"skipped {len(skipped)}  not-in-library {len(missing)}")
+    if not apply:
+        print(f"\n{C.BOLD}Nothing changed.{C.RESET} Re-run with "
+              f"{C.BOLD}--apply{C.RESET} to execute.")
+    else:
+        print(f"\n{C.GREEN}{C.BOLD}Done.{C.RESET}")

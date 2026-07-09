@@ -1,5 +1,6 @@
-"""Command-line interface: init / sync / status / list / watch / schedule /
-unschedule. Backward compatible: no subcommand (or a leading option) means sync."""
+"""Command-line interface: init / sync / uninstall / status / list / watch /
+schedule / unschedule. Backward compatible: no subcommand (or a leading option)
+means sync."""
 from __future__ import annotations
 
 import argparse
@@ -9,8 +10,8 @@ from . import __version__
 from . import agents as A
 from . import engine, runner, scheduler
 
-KNOWN = {"init", "sync", "status", "list", "watch", "schedule", "unschedule",
-         "update", "backup"}
+KNOWN = {"init", "sync", "uninstall", "status", "list", "watch", "schedule",
+         "unschedule", "update", "backup"}
 
 
 class _C:
@@ -178,6 +179,33 @@ def cmd_sync(args):
         quiet=args.quiet, as_json=args.json, self_update=args.self_update)
 
 
+def cmd_uninstall(args):
+    names = [n.strip() for n in args.skill if n and n.strip()]
+    if not names:
+        print("Nothing to uninstall. Usage: skill-sync uninstall <skill> ...")
+        return 1
+
+    # Scan every *installed* agent (not just managed ones) so leftover links are
+    # reclaimed even from agents the user later stopped managing.
+    plan = engine.build_uninstall_plan(A.all_agents(), names)
+    if args.apply:
+        engine.execute_uninstall(plan, do_backup=not args.no_backup)
+    engine.report_uninstall(plan, apply=args.apply, do_backup=not args.no_backup)
+
+    changed = args.apply and (plan["remove_lib"] or plan["remove_links"])
+    if changed and args.commit:
+        msg = runner.git_commit_push(
+            "skill-sync: uninstall " + ", ".join(names), push=args.push)
+        print(f"  git: {msg}")
+    elif changed and not args.commit:
+        print(f"\n  Review & commit in {A.DATA_ROOT}:")
+        print(f"  git -C {A.DATA_ROOT} add -A && "
+              f"git -C {A.DATA_ROOT} commit -m 'uninstall skills'")
+
+    # 0 when something was (or would be) removed; 1 when nothing matched.
+    return 0 if (plan["remove_lib"] or plan["remove_links"]) else 1
+
+
 def cmd_watch(args):
     return scheduler.watch(args.interval, adopt_external=args.adopt_external,
                            commit=args.commit or None, push=args.push or None)
@@ -232,6 +260,17 @@ def build_parser():
     sp.add_argument("--quiet", action="store_true")
     sp.add_argument("--json", action="store_true")
     sp.set_defaults(func=cmd_sync)
+
+    sp = sub.add_parser("uninstall",
+                        help="remove skill(s) from the library and every agent "
+                             "(dry-run unless --apply)")
+    sp.add_argument("skill", nargs="+", metavar="SKILL", help="skill name(s) to remove")
+    sp.add_argument("--apply", action="store_true", help="execute (default: dry-run)")
+    sp.add_argument("--no-backup", action="store_true",
+                    help="don't back up the removed library copy")
+    sp.add_argument("--commit", action="store_true", help="git commit after applying")
+    sp.add_argument("--push", action="store_true", help="git push after committing")
+    sp.set_defaults(func=cmd_uninstall)
 
     sp = sub.add_parser("init", help="detect agents, choose which to manage, save config")
     sp.add_argument("--all", action="store_true", help="manage all installed agents")

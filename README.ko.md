@@ -110,6 +110,7 @@ git add -A && git commit -m "sync skills" && git push
 |---|---|
 | `init [--all\|--agents a,b]` | 설치된 에이전트 감지, 관리 대상 선택, 설정 저장 후 동기화 |
 | `sync [--apply]` | 수집 + 미러링. `--apply` 없으면 드라이런 |
+| `uninstall <skill> … [--apply]` | 라이브러리와 모든 에이전트에서 스킬 제거. `--apply` 없으면 드라이런 |
 | `status` | 플랫폼, 에이전트 표, 자동 동기화 상태, 드라이런 요약 |
 | `list` | 알려진 모든 에이전트와 설치/관리 상태 표시 |
 | `watch --interval 10m` | 포그라운드에서 일정 간격마다 동기화 |
