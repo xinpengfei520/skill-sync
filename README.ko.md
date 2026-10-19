@@ -111,6 +111,8 @@ git add -A && git commit -m "sync skills" && git push
 | `init [--all\|--agents a,b]` | 설치된 에이전트 감지, 관리 대상 선택, 설정 저장 후 동기화 |
 | `sync [--apply]` | 수집 + 미러링. `--apply` 없으면 드라이런 |
 | `uninstall <skill> … [--apply]` | 라이브러리와 모든 에이전트에서 스킬 제거. `--apply` 없으면 드라이런 |
+| `agent add <name> [--path DIR]` | 단일 에이전트 동기화 시작(skills 디렉터리 자동 해석, `--apply` 없으면 미리보기만) |
+| `agent remove <name> [--prune-links]` | 단일 에이전트 동기화 중지, 선택적으로 라이브러리를 가리키는 링크 회수 |
 | `status` | 플랫폼, 에이전트 표, 자동 동기화 상태, 드라이런 요약 |
 | `list` | 알려진 모든 에이전트와 설치/관리 상태 표시 |
 | `watch --interval 10m` | 포그라운드에서 일정 간격마다 동기화 |
@@ -122,6 +124,30 @@ git add -A && git commit -m "sync skills" && git push
 자주 쓰는 `sync` 옵션: `--adopt-external`(외부 허브로 링크된 스킬을 편입),
 `--agent NAME`(특정 에이전트로 한정), `--commit --push`(적용 후 git), `--json`,
 `--no-backup`.
+
+### 에이전트 추가 / 제거
+
+```bash
+# registry에 있는 알려진 에이전트 동기화
+python3 bin/skill-sync.py agent add cursor
+
+# registry에 없는 에이전트: skills 디렉터리를 직접 지정
+python3 bin/skill-sync.py agent add dsh --path ~/.dsh/skills --display "DeepSeek Harness"
+
+# 동기화 중지 및 라이브러리를 가리키는 링크 회수
+python3 bin/skill-sync.py agent remove dsh --prune-links --apply
+```
+
+`agent add`는 skills 디렉터리를 다음 순서로 해석합니다: registry
+(`config/registry.json`) → `custom` 항목(`config/agents.json`) → `--path` →
+관례 경로 탐색(`~/.<name>/skills`, `~/.config/<name>/skills`). 탐색은 실제로 존재하는
+경로만 신뢰하며, 이미 다른 에이전트가 사용하는 디렉터리를 다른 이름으로 등록하는 것을
+거부합니다(같은 디렉터리를 두 번 동기화하게 되므로). `agent add`는 기본적으로 동기화를
+미리 보여 주며, 실행하려면 `--apply`를 붙입니다.
+
+`agent remove`는 선택만 변경합니다. 기존 링크는 `--prune-links`를 줄 때까지 남습니다
+(기본은 드라이런, `--apply`로 삭제). 라이브러리를 가리키는 링크만 회수하며, 실제
+디렉터리와 외부 허브로 향하는 링크는 보고만 하고 그대로 둡니다.
 
 ### 자동 동기화
 
@@ -171,10 +197,12 @@ python3 bin/skill-sync.py backup            # 수동 푸시; 예약 동기화 �
   여기에 추가합니다(`paths.default` 및 선택적 `paths.windows` / `paths.macos` /
   `paths.linux`).
 - **`config/agents.json`** —— 이 기기의 선택: `enabled`(에이전트 이름 목록 또는 `"all"`),
-  `adopt_external`, `auto_commit`, `auto_push`, 그리고 registry에 없는 `custom`
-  에이전트. `init`이 생성합니다.
+  `disabled`(`enabled`가 `"all"`이어도 제외할 에이전트), `adopt_external`,
+  `auto_commit`, `auto_push`, 그리고 registry에 없는 `custom` 에이전트. `init`과
+  `agent add/remove`가 기록합니다.
 
-에이전트는 `enabled`에 있고 **동시에** 설정 디렉터리가 기기에 존재할 때만 동기화됩니다.
+에이전트는 활성화되어 있고 `disabled`에 없으며 **동시에** 설정 디렉터리가 기기에 존재할
+때만 동기화됩니다.
 
 ## 안전
 

@@ -112,6 +112,8 @@ git add -A && git commit -m "sync skills" && git push
 | `init [--all\|--agents a,b]` | エージェントを検出し、管理対象を選び、設定を保存して同期 |
 | `sync [--apply]` | 収集 + ミラー。`--apply` なしはドライラン |
 | `uninstall <skill> … [--apply]` | ライブラリと全エージェントからスキルを削除。`--apply` なしはドライラン |
+| `agent add <name> [--path DIR]` | 単一エージェントの同期を開始（skills ディレクトリを自動解決。`--apply` なしはプレビューのみ） |
+| `agent remove <name> [--prune-links]` | 単一エージェントの同期を停止。任意でライブラリを指すリンクを回収 |
 | `status` | プラットフォーム、エージェント一覧、自動同期の状態、ドライラン概要 |
 | `list` | 既知のすべてのエージェントとその状態を表示 |
 | `watch --interval 10m` | フォアグラウンドで一定間隔ごとに同期 |
@@ -122,6 +124,30 @@ git add -A && git commit -m "sync skills" && git push
 
 よく使う `sync` オプション：`--adopt-external`（外部ハブへリンクされたスキルを取り込む）、
 `--agent NAME`（対象を限定）、`--commit --push`（適用後に git）、`--json`、`--no-backup`。
+
+### エージェントの追加 / 削除
+
+```bash
+# registry にある既知のエージェントを同期
+python3 bin/skill-sync.py agent add cursor
+
+# registry にないエージェント：skills ディレクトリを明示
+python3 bin/skill-sync.py agent add dsh --path ~/.dsh/skills --display "DeepSeek Harness"
+
+# 同期を停止し、ライブラリを指すリンクを回収
+python3 bin/skill-sync.py agent remove dsh --prune-links --apply
+```
+
+`agent add` は skills ディレクトリを次の順で解決します：registry
+（`config/registry.json`）→ `custom` エントリ（`config/agents.json`）→ `--path` →
+規約パスの探索（`~/.<name>/skills`、`~/.config/<name>/skills`）。探索は実際に存在する
+パスのみを採用し、既に別のエージェントが使っているディレクトリを別名で登録することは
+拒否します（同じディレクトリを二重に同期してしまうため）。`agent add` は既定で同期を
+プレビューし、`--apply` で実行します。
+
+`agent remove` は選択だけを変更します。既存のリンクは `--prune-links` を付けるまで
+残ります（既定はドライラン、`--apply` で削除）。ライブラリを指すリンクのみを回収し、
+実ディレクトリや外部ハブへのリンクは報告したうえでそのまま残します。
 
 ### 自動同期
 
@@ -172,11 +198,12 @@ python3 bin/skill-sync.py backup            # 手動で push；スケジュー�
   エージェントはここに追加します（`paths.default` と任意の `paths.windows` /
   `paths.macos` / `paths.linux`）。
 - **`config/agents.json`** —— この端末の選択：`enabled`（エージェント名のリスト、または
-  `"all"`）、`adopt_external`、`auto_commit`、`auto_push`、registry にない `custom`
-  エージェント。`init` が生成します。
+  `"all"`）、`disabled`（`enabled` が `"all"` でも除外するエージェント）、
+  `adopt_external`、`auto_commit`、`auto_push`、registry にない `custom`
+  エージェント。`init` と `agent add/remove` が書き込みます。
 
-エージェントは `enabled` に含まれ、**かつ**設定ディレクトリが端末に存在する場合のみ同期
-されます。
+エージェントは有効で、`disabled` に含まれず、**かつ**設定ディレクトリが端末に存在する
+場合のみ同期されます。
 
 ## 安全性
 

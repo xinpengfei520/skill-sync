@@ -108,6 +108,8 @@ git add -A && git commit -m "sync skills" && git push
 | `init [--all\|--agents a,b]` | 探测已安装 Agent，选择要管理的，保存配置并同步 |
 | `sync [--apply]` | 收集 + 镜像。不加 `--apply` 为 dry-run |
 | `uninstall <skill> … [--apply]` | 从库和所有 Agent 中移除 skill。不加 `--apply` 为 dry-run |
+| `agent add <name> [--path DIR]` | 开始同步单个 Agent（自动解析 skills 目录；不加 `--apply` 仅预览） |
+| `agent remove <name> [--prune-links]` | 停止同步单个 Agent；可选回收它指向库的软链 |
 | `status` | 平台、Agent 表、自动同步状态，以及一次 dry-run 概览 |
 | `list` | 列出所有已知 Agent 及其安装/纳管状态 |
 | `watch --interval 10m` | 前台循环，按间隔同步 |
@@ -118,6 +120,29 @@ git add -A && git commit -m "sync skills" && git push
 
 常用 `sync` 参数：`--adopt-external`（收编当前软链到外部目录的 skill）、`--agent NAME`
 （限定某些 Agent）、`--commit --push`（执行后自动 git）、`--json`、`--no-backup`。
+
+### 添加 / 移除 Agent
+
+```bash
+# 同步 registry 里已知的 Agent
+python3 bin/skill-sync.py agent add cursor
+
+# 不在 registry 里的 Agent：显式给出 skills 目录
+python3 bin/skill-sync.py agent add dsh --path ~/.dsh/skills --display "DeepSeek Harness"
+
+# 停止同步，并回收它指向库的软链
+python3 bin/skill-sync.py agent remove dsh --prune-links --apply
+```
+
+`agent add` 按以下顺序解析 skills 目录：registry（`config/registry.json`）→
+`custom` 条目（`config/agents.json`）→ `--path` → 约定路径探测
+（`~/.<name>/skills`、`~/.config/<name>/skills`）。探测只采信真实存在的路径，并会
+拒绝把已属于另一个 Agent 的目录登记成第二个名字（同一目录、两个名字会重复同步）。
+`agent add` 默认只预览同步，加 `--apply` 才执行。
+
+`agent remove` 只改选择；已有软链会保留，直到你加 `--prune-links`（默认 dry-run，
+加 `--apply` 才删除）。只回收指向库的链接；真实目录和指向外部 hub 的链接会被报告并
+原样保留。
 
 ### 自动同步
 
@@ -165,10 +190,11 @@ python3 bin/skill-sync.py backup            # 手动推送；定时同步后也�
 - **`config/registry.json`** —— 已知 Agent 目录及其各系统路径。新增 Agent 在这里加
   （用 `paths.default`，可选 `paths.windows` / `paths.macos` / `paths.linux`）。
 - **`config/agents.json`** —— 你本机的选择：`enabled`（Agent 名列表，或 `"all"`）、
-  `adopt_external`、`auto_commit`、`auto_push`，以及不在 registry 里的 `custom` Agent。
-  由 `init` 生成。
+  `disabled`（即使 `enabled` 为 `"all"` 也被排除的 Agent）、`adopt_external`、
+  `auto_commit`、`auto_push`，以及不在 registry 里的 `custom` Agent。由 `init` 和
+  `agent add/remove` 写入。
 
-只有当某 Agent 同时在 `enabled` 列表里**且**其配置目录在本机存在时才会被同步。
+只有当某 Agent 已启用、不在 `disabled` 里、**且**其配置目录在本机存在时才会被同步。
 
 ## 安全
 
