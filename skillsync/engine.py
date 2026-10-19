@@ -401,3 +401,75 @@ def report_uninstall(plan: dict, apply: bool, do_backup: bool,
               f"{C.BOLD}--apply{C.RESET} to execute.")
     else:
         print(f"\n{C.GREEN}{C.BOLD}Done.{C.RESET}")
+
+
+# --- prune one agent --------------------------------------------------------
+def build_prune_agent_plan(agent: dict, library: Path | None = None) -> dict:
+    """Plan removal of one agent's symlinks that point into the library.
+
+    Used when an agent stops being managed: its mirrored links otherwise stay
+    behind as orphans. Real directories and links to outside hubs are reported
+    and left untouched — only library-pointing symlinks are reclaimed."""
+    library = library or A.skills_root()
+    sd = agent["skills_dir"]
+    remove, skipped = [], []
+    if sd and sd.is_dir():
+        for entry in sorted(sd.iterdir()):
+            if entry.name in A.IGNORE_NAMES or entry.name.startswith("."):
+                continue
+            if A.is_link(entry):
+                if _points_into(entry, library):
+                    remove.append({"agent": agent["name"], "name": entry.name,
+                                   "dst": entry})
+                else:
+                    skipped.append({
+                        "agent": agent["name"], "name": entry.name,
+                        "why": "external -> "
+                               + (A.link_target(entry) or os.path.realpath(entry))})
+            elif entry.is_dir():
+                skipped.append({"agent": agent["name"], "name": entry.name,
+                                "why": "real directory"})
+    return {"library": library, "agent": agent, "remove": remove,
+            "skipped": skipped}
+
+
+def execute_prune(plan: dict) -> None:
+    for item in plan["remove"]:
+        if A.is_link(item["dst"]):
+            A.remove_link(item["dst"])
+
+
+def report_prune(plan: dict, apply: bool, quiet: bool = False) -> None:
+    C = _C
+    rem, skipped = plan["remove"], plan["skipped"]
+    agent = plan["agent"]
+    if quiet:
+        print(f"skill-sync agent prune: {'applied' if apply else 'dry-run'} — "
+              f"{len(rem)} link(s), {len(skipped)} skipped")
+        return
+
+    verb = "" if apply else "would "
+    print(f"\n{C.BOLD}skill-sync agent prune — {'APPLY' if apply else 'DRY-RUN'}"
+          f"{C.RESET}")
+    print(f"{C.DIM}agent: {agent['name']}  dir: {agent['skills_dir']}{C.RESET}")
+
+    def section(title, items, color, fmt):
+        if not items:
+            return
+        print(f"\n{color}{C.BOLD}{title} ({len(items)}){C.RESET}")
+        for it in items:
+            print("  " + fmt(it))
+
+    section(f"UNLINK — {verb}remove link into library", rem, C.BLUE,
+            lambda i: f"{i['name']}")
+    section("SKIPPED — real dir / external link, LEFT UNTOUCHED", skipped,
+            C.YELLOW,
+            lambda i: f"{i['name']} {C.DIM}({i['why']}){C.RESET}")
+
+    print(f"\n{C.BOLD}Summary{C.RESET}")
+    print(f"  unlink {len(rem)}  skipped {len(skipped)}")
+    if not apply:
+        print(f"\n{C.BOLD}Nothing changed.{C.RESET} Re-run with "
+              f"{C.BOLD}--apply{C.RESET} to execute.")
+    else:
+        print(f"\n{C.GREEN}{C.BOLD}Done.{C.RESET}")

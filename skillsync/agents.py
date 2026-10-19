@@ -109,11 +109,21 @@ def all_agents() -> list[dict]:
     return [resolve_agent(e, i) for i, e in enumerate(entries)]
 
 
+def is_managed(name: str, sel: dict | None = None) -> bool:
+    """True when `name` is not disabled and is covered by `enabled`."""
+    sel = sel if sel is not None else load_selection()
+    if name in (sel.get("disabled") or []):
+        return False
+    enabled = sel.get("enabled", "all")
+    return not isinstance(enabled, list) or name in enabled
+
+
 def managed_agents(only: list[str] | None = None) -> list[dict]:
     """Resolved agents the user has enabled (and optionally filtered by name)."""
     sel = load_selection()
     enabled = sel.get("enabled", "all")
-    agents = all_agents()
+    disabled = set(sel.get("disabled") or [])
+    agents = [a for a in all_agents() if a["name"] not in disabled]
     if isinstance(enabled, list):
         wanted = set(enabled)
         agents = [a for a in agents if a["name"] in wanted]
@@ -123,6 +133,48 @@ def managed_agents(only: list[str] | None = None) -> list[dict]:
     return sorted(agents, key=lambda a: a["priority"])
 
 
+def probe_skills_dir(name: str) -> list[Path]:
+    """Best-effort guesses for an unknown agent's skills dir.
+
+    Only returns paths that actually show evidence of the agent on this machine
+    (the skills dir exists, or its parent — the agent's config dir — does).
+    Never creates anything."""
+    seen: set[str] = set()
+    out: list[Path] = []
+    for raw in (f"~/.{name}/skills", f"~/.config/{name}/skills"):
+        p = expand(raw)
+        if not (p.is_dir() or p.parent.is_dir()):
+            continue
+        key = os.path.realpath(p)
+        if key not in seen:
+            seen.add(key)
+            out.append(p)
+    return out
+
+
+def find_agent_by_dir(path: Path, exclude: str | None = None) -> dict | None:
+    """Return the agent already configured with this skills dir, if any.
+
+    Guards `agent add` against registering a second name for the same directory
+    (e.g. `dsh` vs. a custom `deepseek`), which would double-process it."""
+    target = os.path.realpath(path)
+    for a in all_agents():
+        if a["name"] == exclude or not a["skills_dir"]:
+            continue
+        if os.path.realpath(a["skills_dir"]) == target:
+            return a
+    return None
+
+
+def tilde_path(path: Path) -> str:
+    """Render a path under the home dir as ~/… so config stays portable."""
+    try:
+        rel = Path(os.path.realpath(path)).relative_to(Path.home())
+    except ValueError:
+        return str(path)
+    return "~/" + rel.as_posix()
+
+
 # --- User selection (config/agents.json) ------------------------------------
 def load_selection() -> dict:
     if SELECTION_FILE.is_file():
@@ -130,10 +182,11 @@ def load_selection() -> dict:
             data = json.loads(SELECTION_FILE.read_text(encoding="utf-8"))
             if isinstance(data, list):  # legacy: [{name, skills_dir, priority}, ...]
                 return {"enabled": [a["name"] for a in data if "name" in a],
-                        "adopt_external": True, "auto_commit": False,
-                        "auto_push": False, "custom": []}
+                        "disabled": [], "adopt_external": True,
+                        "auto_commit": False, "auto_push": False, "custom": []}
             if isinstance(data, dict):
                 data.setdefault("enabled", "all")
+                data.setdefault("disabled", [])
                 data.setdefault("adopt_external", True)
                 data.setdefault("auto_commit", False)
                 data.setdefault("auto_push", False)
@@ -144,9 +197,10 @@ def load_selection() -> dict:
                 return data
         except (json.JSONDecodeError, OSError):
             pass
-    return {"enabled": "all", "adopt_external": True, "auto_commit": False,
-            "auto_push": False, "auto_update": False, "update_remote": "origin",
-            "backup": {"enabled": False, "remote": None}, "custom": []}
+    return {"enabled": "all", "disabled": [], "adopt_external": True,
+            "auto_commit": False, "auto_push": False, "auto_update": False,
+            "update_remote": "origin", "backup": {"enabled": False, "remote": None},
+            "custom": []}
 
 
 def save_selection(sel: dict) -> None:

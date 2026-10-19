@@ -10,8 +10,8 @@ from . import __version__
 from . import agents as A
 from . import engine, runner, scheduler
 
-KNOWN = {"init", "sync", "uninstall", "status", "list", "watch", "schedule",
-         "unschedule", "update", "backup"}
+KNOWN = {"init", "sync", "uninstall", "agent", "status", "list", "watch",
+         "schedule", "unschedule", "update", "backup"}
 
 
 class _C:
@@ -25,13 +25,11 @@ class _C:
 
 def _print_agents_table(only_installed: bool = False):
     sel = A.load_selection()
-    enabled = sel.get("enabled", "all")
-    enabled_set = None if enabled == "all" else set(enabled)
     print(f"{_C.B}{'AGENT':<12} {'INSTALLED':<10} {'MANAGED':<8} PATH{_C.R}")
     for a in A.all_agents():
         if only_installed and not a["installed"]:
             continue
-        man = (enabled_set is None) or (a["name"] in enabled_set)
+        man = A.is_managed(a["name"], sel)
         ci, cm = (_C.G if a["installed"] else _C.D), (_C.G if man else _C.D)
         inst = ci + ("yes" if a["installed"] else "no").ljust(10) + _C.R
         mflag = cm + ("yes" if man else "no").ljust(8) + _C.R
@@ -161,6 +159,7 @@ def cmd_init(args):
 
     sel = A.load_selection()
     sel["enabled"] = chosen
+    sel["disabled"] = []  # `init` is a full reconfiguration: un-disable everything
     if args.adopt_external is not None:
         sel["adopt_external"] = args.adopt_external
     A.save_selection(sel)
@@ -204,6 +203,157 @@ def cmd_uninstall(args):
 
     # 0 when something was (or would be) removed; 1 when nothing matched.
     return 0 if (plan["remove_lib"] or plan["remove_links"]) else 1
+
+
+def _enable_agent(name: str, sel: dict) -> None:
+    """Make `name` managed: drop it from `disabled`, add it to `enabled` when
+    that is an explicit list."""
+    sel["disabled"] = [x for x in (sel.get("disabled") or []) if x != name]
+    enabled = sel.get("enabled", "all")
+    if isinstance(enabled, list) and name not in enabled:
+        enabled.append(name)
+        sel["enabled"] = enabled
+    A.save_selection(sel)
+
+
+def _agent_add(args):
+    name = args.name.strip()
+    if not name:
+        print("Usage: skill-sync agent add <name> [--path DIR]")
+        return 1
+
+    sel = A.load_selection()
+    by_name = {a["name"]: a for a in A.all_agents()}
+
+    if name in by_name:
+        if args.path:
+            print(f"{_C.Y}Note:{_C.R} '{name}' is a known agent; its path comes "
+                  f"from the registry ({by_name[name]['skills_dir']}), "
+                  f"so --path is ignored.")
+        if A.is_managed(name, sel):
+            print(f"{_C.G}{name} is already managed.{_C.R}")
+            # Still honor --apply: the config write above already happened on a
+            # previous `add`, so this is the caller asking to sync it now.
+            return _preview_agent_sync(name, args) if args.apply else 0
+        _enable_agent(name, sel)
+        print(f"{_C.G}Enabled{_C.R} {name} "
+              f"{_C.D}({by_name[name]['skills_dir']}){_C.R}")
+        return _preview_agent_sync(name, args)
+
+    # Unknown to the registry and to custom: resolve a path.
+    path = None
+    if args.path:
+        path = A.expand(args.path)
+        if path.exists() and not path.is_dir():
+            print(f"{_C.Y}Not a directory:{_C.R} {path}")
+            return 1
+        if not path.exists() and not path.parent.exists():
+            print(f"{_C.Y}Warning:{_C.R} neither {path} nor its parent exists — "
+                  f"{name} won't be synced until it's installed.")
+    else:
+        candidates = A.probe_skills_dir(name)
+        if len(candidates) == 1:
+            path = candidates[0]
+            print(f"{_C.D}Detected path: {path}{_C.R}")
+        elif len(candidates) > 1:
+            if sys.stdin.isatty():
+                print(f"{_C.B}Possible paths for {name}:{_C.R}")
+                for i, p in enumerate(candidates, 1):
+                    print(f"  {i:>2}. {p}")
+                raw = input("Which one? [1]: ").strip() or "1"
+                idx = (int(raw) if raw.isdigit()
+                       and 1 <= int(raw) <= len(candidates) else 1)
+                path = candidates[idx - 1]
+            else:
+                print(f"{_C.Y}Multiple candidate paths for {name}:{_C.R}")
+                for p in candidates:
+                    print(f"  {p}")
+                print("Pick one with --path.")
+                return 2
+        else:
+            print(f"{_C.Y}Unknown agent:{_C.R} {name}")
+            print("Not in the registry, and no conventional skills dir was found.")
+            print(f"Add it explicitly:\n"
+                  f"  skill-sync agent add {name} --path ~/.{name}/skills")
+            return 1
+
+    clash = A.find_agent_by_dir(path, exclude=name)
+    if clash:
+        managed = A.is_managed(clash["name"], sel)
+        print(f"{_C.Y}Path already belongs to '{clash['name']}':{_C.R} {path}")
+        print(f"  Registering '{name}' too would sync the same directory twice.")
+        if not managed:
+            print(f"  Use: skill-sync agent add {clash['name']}")
+        return 1
+
+    entry = {"name": name, "display": args.display or name,
+             "paths": {"default": A.tilde_path(path)}}
+    custom = list(sel.get("custom") or [])
+    custom.append(entry)
+    sel["custom"] = custom
+    _enable_agent(name, sel)
+    print(f"{_C.G}Added custom agent:{_C.R} {name} -> "
+          f"{A.tilde_path(path)}")
+    return _preview_agent_sync(name, args)
+
+
+def _preview_agent_sync(name: str, args) -> int:
+    """Show (or, with --apply, perform) a sync limited to the new agent."""
+    print()
+    return runner.run_sync(apply=args.apply, only=[name])
+
+
+def _agent_remove(args):
+    name = args.name.strip()
+    if not name:
+        print("Usage: skill-sync agent remove <name> [--prune-links [--apply]]")
+        return 1
+
+    sel = A.load_selection()
+    agents = {a["name"]: a for a in A.all_agents()}
+    managed = A.is_managed(name, sel)
+
+    if managed:
+        enabled = sel.get("enabled", "all")
+        if isinstance(enabled, list):
+            sel["enabled"] = [x for x in enabled if x != name]
+        disabled = list(sel.get("disabled") or [])
+        if name not in disabled:
+            disabled.append(name)
+        sel["disabled"] = disabled
+        A.save_selection(sel)
+        print(f"{_C.G}Disabled{_C.R} {name} — it will no longer be synced.")
+    else:
+        print(f"{_C.D}{name} is not managed; nothing to disable.{_C.R}")
+
+    agent = agents.get(name)
+    if not agent:
+        if args.prune_links:
+            print(f"{_C.Y}Unknown agent:{_C.R} {name} — nothing to prune.")
+            return 1
+        return 0
+
+    plan = engine.build_prune_agent_plan(agent)
+    if args.prune_links:
+        if args.apply:
+            engine.execute_prune(plan)
+        engine.report_prune(plan, apply=args.apply)
+        return 0
+
+    if plan["remove"]:
+        print(f"{_C.D}{len(plan['remove'])} symlink(s) still point into the "
+              f"library; add --prune-links to clean them up.{_C.R}")
+    return 0
+
+
+def cmd_agent(args):
+    action = getattr(args, "agent_cmd", None)
+    if action == "add":
+        return _agent_add(args)
+    if action == "remove":
+        return _agent_remove(args)
+    print("Usage: skill-sync agent {add|remove} <name>")
+    return 1
 
 
 def cmd_watch(args):
@@ -271,6 +421,26 @@ def build_parser():
     sp.add_argument("--commit", action="store_true", help="git commit after applying")
     sp.add_argument("--push", action="store_true", help="git push after committing")
     sp.set_defaults(func=cmd_uninstall)
+
+    sp = sub.add_parser("agent", help="add or remove one agent from syncing")
+    ag = sp.add_subparsers(dest="agent_cmd", required=True, metavar="{add,remove}")
+
+    ap = ag.add_parser("add", help="start syncing an agent (resolves its path)")
+    ap.add_argument("name", metavar="NAME", help="agent name")
+    ap.add_argument("--path", metavar="DIR",
+                    help="skills dir for an agent not in the registry")
+    ap.add_argument("--display", metavar="LABEL", help="human-readable label")
+    ap.add_argument("--apply", action="store_true",
+                    help="sync the agent now (default: preview only)")
+    ap.set_defaults(func=cmd_agent)
+
+    rp = ag.add_parser("remove", help="stop syncing an agent")
+    rp.add_argument("name", metavar="NAME", help="agent name")
+    rp.add_argument("--prune-links", action="store_true",
+                    help="also remove that agent's symlinks into the library")
+    rp.add_argument("--apply", action="store_true",
+                    help="execute --prune-links (default: dry-run)")
+    rp.set_defaults(func=cmd_agent)
 
     sp = sub.add_parser("init", help="detect agents, choose which to manage, save config")
     sp.add_argument("--all", action="store_true", help="manage all installed agents")

@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **`agent add` / `agent remove`** — manage one agent without re-running `init`.
+  `agent add <name>` enables it, resolving the skills dir from the registry →
+  `custom` → `--path` → a convention probe (`~/.<name>/skills`,
+  `~/.config/<name>/skills`); it refuses a name that points at another agent's
+  directory and previews the sync unless `--apply`. `agent remove <name>` stops
+  syncing it and, with `--prune-links` (dry-run unless `--apply`), reclaims the
+  symlinks it left in the library — real dirs and external links are left alone.
+  New `disabled` key in `config/agents.json` makes exclusions work even when
+  `enabled` is `"all"`; `init` clears it.
 - **`uninstall` command** — `skill-sync uninstall <skill> [<skill> …]` removes a
   skill from the library and every installed agent in one pass: it deletes
   `skills/<name>` (backed up first unless `--no-backup`) and removes every

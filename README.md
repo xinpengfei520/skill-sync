@@ -115,6 +115,8 @@ git add -A && git commit -m "sync skills" && git push
 | `init [--all\|--agents a,b]` | Detect installed agents, pick which to manage, save config, sync |
 | `sync [--apply]` | Collect + mirror. Dry-run unless `--apply` |
 | `uninstall <skill> … [--apply]` | Remove skill(s) from the library and every agent. Dry-run unless `--apply` |
+| `agent add <name> [--path DIR]` | Start syncing one agent (resolves its skills dir; preview unless `--apply`) |
+| `agent remove <name> [--prune-links]` | Stop syncing one agent; optionally reclaim its symlinks |
 | `status` | Platform, agent table, auto-sync state, and a dry-run summary |
 | `list` | All known agents with installed / managed state |
 | `watch --interval 10m` | Foreground loop; sync every interval |
@@ -126,6 +128,32 @@ git add -A && git commit -m "sync skills" && git push
 Useful `sync` flags: `--adopt-external` (centralize skills currently symlinked to
 an outside hub), `--agent NAME` (limit to specific agents), `--commit --push`
 (git after applying), `--json`, `--no-backup`.
+
+### Adding / removing an agent
+
+```bash
+# Start syncing an agent that's in the registry
+python3 bin/skill-sync.py agent add cursor
+
+# An agent not in the registry: give it the skills directory
+python3 bin/skill-sync.py agent add dsh --path ~/.dsh/skills --display "DeepSeek Harness"
+
+# Stop syncing it, and reclaim its links into the library
+python3 bin/skill-sync.py agent remove dsh --prune-links --apply
+```
+
+`agent add` resolves the skills dir in this order: the registry
+(`config/registry.json`) → your `custom` entries (`config/agents.json`) →
+`--path` → a convention probe of `~/.<name>/skills` and
+`~/.config/<name>/skills`. The probe only trusts paths that actually exist, and
+it refuses to register a name whose directory already belongs to another agent
+(same dir, two names → double sync). `agent add` previews a sync; add `--apply`
+to perform it.
+
+`agent remove` only changes the selection — existing symlinks stay until you pass
+`--prune-links` (dry-run by default, `--apply` to delete). Only links pointing
+into the library are reclaimed; real directories and links to outside hubs are
+reported and left untouched.
 
 ### Auto-sync
 
@@ -177,11 +205,12 @@ and want your own skills stored separately.
   paths. Add new agents here (with `paths.default` and optional `paths.windows` /
   `paths.macos` / `paths.linux`).
 - **`config/agents.json`** — your machine's selection: `enabled` (a list of agent
-  names, or `"all"`), `adopt_external`, `auto_commit`, `auto_push`, and any
-  `custom` agents not in the registry. Written by `init`.
+  names, or `"all"`), `disabled` (names excluded even when `enabled` is `"all"`),
+  `adopt_external`, `auto_commit`, `auto_push`, and any `custom` agents not in
+  the registry. Written by `init` and `agent add/remove`.
 
-An agent is only synced if it's in `enabled` **and** its config directory exists
-on this machine.
+An agent is only synced if it's enabled, not `disabled`, **and** its config
+directory exists on this machine.
 
 ## Safety
 
