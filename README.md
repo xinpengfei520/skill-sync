@@ -212,6 +212,24 @@ and want your own skills stored separately.
 An agent is only synced if it's enabled, not `disabled`, **and** its config
 directory exists on this machine.
 
+### Antigravity family
+
+`antigravity` (Antigravity 2.0), `antigravity-ide` and `antigravity-cli` each
+have their own data directory under `~/.gemini/`, but they also share a global
+customization root:
+
+- `~/.gemini/antigravity/skills` is a **symlink** to `~/.gemini/config/skills`.
+- `~/.gemini/config/skills` is Antigravity's *cloud-managed* skill bundle
+  (`.datacloud_skills_manifest` records each skill's checksum and install
+  status). Enabling the `antigravity` agent makes skill-sync take ownership of
+  that store: its real skill directories are moved into the library or replaced
+  with symlinks, and Antigravity's own installer may re-create them. Enable it
+  only if you want your library to be the single source of truth for those
+  skills.
+- `antigravity-ide/skills` and `antigravity-cli/skills` are per-product
+  directories (the CLI scans both these and the shared root), so they are the
+  lower-risk targets.
+
 ## Safety
 
 - Dry-run by default; real changes need `--apply`.

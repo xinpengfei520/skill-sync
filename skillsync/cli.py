@@ -25,15 +25,16 @@ class _C:
 
 def _print_agents_table(only_installed: bool = False):
     sel = A.load_selection()
-    print(f"{_C.B}{'AGENT':<12} {'INSTALLED':<10} {'MANAGED':<8} PATH{_C.R}")
-    for a in A.all_agents():
-        if only_installed and not a["installed"]:
-            continue
+    agents = [a for a in A.all_agents()
+              if not (only_installed and not a["installed"])]
+    w = max([len("AGENT")] + [len(a["name"]) for a in agents])
+    print(f"{_C.B}{'AGENT':<{w}} {'INSTALLED':<10} {'MANAGED':<8} PATH{_C.R}")
+    for a in agents:
         man = A.is_managed(a["name"], sel)
         ci, cm = (_C.G if a["installed"] else _C.D), (_C.G if man else _C.D)
         inst = ci + ("yes" if a["installed"] else "no").ljust(10) + _C.R
         mflag = cm + ("yes" if man else "no").ljust(8) + _C.R
-        print(f"{a['name']:<12} {inst} {mflag} {_C.D}{a['skills_dir']}{_C.R}")
+        print(f"{a['name']:<{w}} {inst} {mflag} {_C.D}{a['skills_dir']}{_C.R}")
 
 
 # --- commands ---------------------------------------------------------------
@@ -141,8 +142,9 @@ def cmd_init(args):
                   f"{', '.join(sorted(missing))}")
     elif sys.stdin.isatty() and not args.yes:
         print(f"{_C.B}Detected installed agents:{_C.R}")
+        w = max([len("AGENT")] + [len(a["name"]) for a in installed])
         for i, a in enumerate(installed, 1):
-            print(f"  {i:>2}. {a['name']:<12} {_C.D}{a['display']}{_C.R}")
+            print(f"  {i:>2}. {a['name']:<{w}} {_C.D}{a['display']}{_C.R}")
         raw = input("\nSync which? comma-separated numbers, or 'all' "
                     "[all]: ").strip().lower()
         if raw in ("", "all", "a"):

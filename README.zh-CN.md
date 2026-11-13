@@ -196,6 +196,20 @@ python3 bin/skill-sync.py backup            # 手动推送；定时同步后也�
 
 只有当某 Agent 已启用、不在 `disabled` 里、**且**其配置目录在本机存在时才会被同步。
 
+### Antigravity 系列
+
+`antigravity`（Antigravity 2.0）、`antigravity-ide`、`antigravity-cli` 各自在
+`~/.gemini/` 下有独立数据目录，但共享同一个全局配置根：
+
+- `~/.gemini/antigravity/skills` 是指向 `~/.gemini/config/skills` 的**软链**。
+- `~/.gemini/config/skills` 是 Antigravity 的**云端托管** skill 包
+  （`.datacloud_skills_manifest` 记录了每个 skill 的校验和与安装状态）。启用
+  `antigravity` 会让 skill-sync 接管这个库：其中的真实目录会被移进你的 library
+  或替换成软链，Antigravity 自己的安装器可能再把它们重建出来。只有当你想让自己的
+  library 成为这些 skill 的唯一来源时才启用。
+- `antigravity-ide/skills` 和 `antigravity-cli/skills` 是各产品的独立目录
+  （CLI 会同时扫描它和共享根），风险更低，建议优先用这两个。
+
 ## 安全
 
 - 默认 dry-run；真正改动需要 `--apply`。
