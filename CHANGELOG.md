@@ -12,6 +12,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `~/.gemini/{antigravity,antigravity-ide,antigravity-cli}/skills`. Note that
   `~/.gemini/antigravity/skills` is a symlink to the shared, cloud-managed
   `~/.gemini/config/skills` store — see the README before enabling it.
+- **Grok** — `grok` (`~/.grok/skills`) is now in the registry, so it no longer
+  needs a `custom` entry. A `custom` entry that duplicates a registry name is
+  ignored (the registry wins), which prevents syncing the same directory twice.
 - **`agent add` / `agent remove`** — manage one agent without re-running `init`.
   `agent add <name>` enables it, resolving the skills dir from the registry →
   `custom` → `--path` → a convention probe (`~/.<name>/skills`,

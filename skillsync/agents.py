@@ -51,6 +51,7 @@ BUILTIN_REGISTRY = [
     {"name": "opencode",  "display": "OpenCode",           "paths": {"default": "~/.config/opencode/skills"}},
     {"name": "kiro",      "display": "Kiro",               "paths": {"default": "~/.kiro/skills"}},
     {"name": "openclaw",  "display": "OpenClaw",           "paths": {"default": "~/.openclaw/skills"}},
+    {"name": "grok",      "display": "Grok",               "paths": {"default": "~/.grok/skills"}},
 ]
 
 
@@ -105,10 +106,15 @@ def resolve_agent(entry: dict, priority: int) -> dict:
 
 
 def all_agents() -> list[dict]:
-    """Every known agent (registry + user custom), resolved for this OS."""
+    """Every known agent (registry + user custom), resolved for this OS.
+
+    A custom entry whose name is already in the registry is dropped: the
+    registry wins, and processing one name twice would double-sync its dir."""
     reg = load_registry()
     custom = load_selection().get("custom") or []
-    entries = list(reg) + list(custom)
+    entries = list(reg)
+    seen = {e.get("name") for e in entries}
+    entries += [e for e in custom if e.get("name") not in seen]
     return [resolve_agent(e, i) for i, e in enumerate(entries)]
 
 

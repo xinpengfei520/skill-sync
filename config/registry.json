@@ -17,6 +17,7 @@
     { "name": "windsurf",  "display": "Windsurf (Codeium)","paths": { "default": "~/.codeium/windsurf/skills" } },
     { "name": "opencode",  "display": "OpenCode",          "paths": { "default": "~/.config/opencode/skills", "windows": "%APPDATA%/opencode/skills" } },
     { "name": "kiro",      "display": "Kiro",              "paths": { "default": "~/.kiro/skills" } },
-    { "name": "openclaw",  "display": "OpenClaw",          "paths": { "default": "~/.openclaw/skills" } }
+    { "name": "openclaw",  "display": "OpenClaw",          "paths": { "default": "~/.openclaw/skills" } },
+    { "name": "grok",      "display": "Grok",              "paths": { "default": "~/.grok/skills" } }
   ]
 }
