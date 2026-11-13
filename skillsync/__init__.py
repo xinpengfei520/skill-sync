@@ -5,4 +5,4 @@ repo and mirrors them back via symlinks, so editing a skill once updates
 every agent. Cross-platform (macOS / Linux / Windows).
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
