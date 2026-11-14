@@ -6,7 +6,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.4.0] — 2026-11-13
+## [0.4.1] — 2026-11-14
 
 ### Added
 - **`doctor` command** — a read-only health check for the library and every
@@ -16,7 +16,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Agent Skills limits (name/description present, kebab-case name ≤ 64 chars,
   description ≤ 1024 chars without angle brackets, `SKILL.md` < 500 lines) and
   ends with concrete suggestions. `--json` for tooling, `--limit`/`--all` to
-  control the size table, `--strict` to exit 1 when an error is found.
+  control the size table and info findings, `--agent` to narrow the agent view,
+  `--strict` to exit 1 when an error is found.
+
+### Documentation
+- **Product banner** at the top of all four READMEs — agents on the left, each
+  linked to `skill-sync` in the middle, and `skills-repo` on the right.
+- `doctor` is documented in all four language READMEs (command table and a
+  health-check section).
+
+## [0.4.0] — 2026-11-13
+
+### Added
 - **Antigravity agents** — `antigravity`, `antigravity-ide`, and
   `antigravity-cli` are now in the registry, pointing at
   `~/.gemini/{antigravity,antigravity-ide,antigravity-cli}/skills`. Note that
@@ -113,6 +124,7 @@ Initial release.
   codebuddy, qoder, trae, windsurf.
 - Resolved the `aihot` naming conflict (kept the Claude Code version).
 
+[0.4.1]: https://github.com/xinpengfei520/skill-sync/releases/tag/v0.4.1
 [0.4.0]: https://github.com/xinpengfei520/skill-sync/releases/tag/v0.4.0
 [0.3.0]: https://github.com/xinpengfei520/skill-sync/releases/tag/v0.3.0
 [0.2.0]: https://github.com/xinpengfei520/skill-sync/releases/tag/v0.2.0
