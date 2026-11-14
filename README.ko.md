@@ -56,7 +56,25 @@ WorkBuddy 등 —— 은 모두 [Skills](https://www.anthropic.com/news/skills)
 
 ## 설치
 
-### 방법 A —— AI 에이전트로 원클릭 설치(붙여넣기만)
+### 방법 A —— 한 줄 설치 (macOS / Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/xinpengfei520/skill-sync/main/install.sh | sh
+```
+
+도구를 `~/.skill-sync/tool` 에 클론하고(기존 checkout, 예를 들어 `~/skill-sync`
+가 있으면 재사용), `~/.local/bin` 에 `skill-sync` 런처를 만들고 PATH 에
+추가합니다(`~/.zshrc` 또는 `~/.bashrc`). `git` 과 Python 3.9+ 가 필요합니다.
+다시 실행하면 checkout 을 업데이트하며, skills 라이브러리나
+`config/agents.json` 은 건드리지 않습니다.
+
+그다음:
+
+```bash
+skill-sync init
+```
+
+### 방법 B —— AI 에이전트로 원클릭 설치(붙여넣기만)
 
 아래를 복사해 아무 AI 에이전트(Claude Code, Codex, Cursor…)에 붙여넣으면 저장소 클론·
 에이전트 감지·동기화까지 실행합니다:
@@ -79,7 +97,7 @@ Python 3.9+ 필요. 기존 스킬을 덮어쓰지 마 —— 같은 이름인데
 > 다시 동기화됩니다 —— `skill-sync` 스킬이 모든 에이전트에 미러링되어 있어 명령을 외울
 > 필요가 없습니다.
 
-### 방법 B —— 수동
+### 방법 C —— 수동
 
 **Python 3.9+** 외에 의존성이 없습니다. 클론 후 바로 실행:
 
@@ -96,17 +114,20 @@ python3 bin/skill-sync.py --version
 
 ```bash
 # 1. 관리할 설치된 에이전트 선택(대화형 또는 --all)
-python3 bin/skill-sync.py init
+skill-sync init
 
 # 2. 동기화 미리보기(아무것도 바뀌지 않음)
-python3 bin/skill-sync.py
+skill-sync
 
 # 3. 적용
-python3 bin/skill-sync.py --apply
+skill-sync --apply
 
 # 4. 커밋 & 푸시(이 저장소가 단일 원본 소스)
 git add -A && git commit -m "sync skills" && git push
 ```
+
+설치 프로그램이 아니라 수동 `git clone` 을 쓴 경우, 위의 `skill-sync` 를
+`python3 bin/skill-sync.py` 로 바꿔 실행하세요.
 
 ## 명령어
 

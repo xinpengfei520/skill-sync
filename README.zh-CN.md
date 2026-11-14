@@ -54,7 +54,24 @@ WorkBuddy 等 —— 都支持 [Skills](https://www.anthropic.com/news/skills)�
 
 ## 安装
 
-### 方式一 —— 让 AI Agent 一键安装（复制粘贴即可）
+### 方式一 —— 一行命令（macOS / Linux）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/xinpengfei520/skill-sync/main/install.sh | sh
+```
+
+会把工具克隆到 `~/.skill-sync/tool`（若已有 checkout，例如 `~/skill-sync`，
+则直接复用），在 `~/.local/bin` 生成 `skill-sync` 启动器，并把该目录加入你的
+shell PATH（`~/.zshrc` 或 `~/.bashrc`）。需要 `git` 和 Python 3.9+。重复执行
+即更新 checkout；不会改动你的 skills 库或 `config/agents.json`。
+
+然后：
+
+```bash
+skill-sync init
+```
+
+### 方式二 —— 让 AI Agent 一键安装（复制粘贴即可）
 
 复制下面这段，粘贴给任意 AI Agent（Claude Code、Codex、Cursor…），它就会克隆仓库、
 探测你已安装的 Agent 并完成同步：
@@ -76,7 +93,7 @@ WorkBuddy 等 —— 都支持 [Skills](https://www.anthropic.com/news/skills)�
 > **提示：** 装好后，以后只需对任意 Agent 说一句 *“同步我的 skills”* 即可再次同步
 > —— `skill-sync` 技能已镜像进每个 Agent，无需记任何命令。
 
-### 方式二 —— 手动安装
+### 方式三 —— 手动安装
 
 除 **Python 3.9+** 外无任何依赖。克隆即用：
 
@@ -93,17 +110,20 @@ python3 bin/skill-sync.py --version
 
 ```bash
 # 1. 选择要管理哪些已安装的 Agent（交互式，或 --all）
-python3 bin/skill-sync.py init
+skill-sync init
 
 # 2. 预览一次同步会做什么（不改动任何东西）
-python3 bin/skill-sync.py
+skill-sync
 
 # 3. 执行
-python3 bin/skill-sync.py --apply
+skill-sync --apply
 
 # 4. 提交并推送（本仓库是唯一源码）
 git add -A && git commit -m "sync skills" && git push
 ```
+
+如果用的是手动 `git clone` 而不是安装器，把上面所有 `skill-sync` 换成
+`python3 bin/skill-sync.py` 即可。
 
 ## 命令
 

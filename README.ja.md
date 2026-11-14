@@ -57,7 +57,25 @@ WorkBuddy など —— はいずれも [Skills](https://www.anthropic.com/news/
 
 ## インストール
 
-### 方法 A —— AI エージェントで一発インストール（貼るだけ）
+### 方法 A —— ワンライン（macOS / Linux）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/xinpengfei520/skill-sync/main/install.sh | sh
+```
+
+ツールを `~/.skill-sync/tool` にクローンし（既存の checkout、たとえば
+`~/skill-sync` があればそれを再利用）、`~/.local/bin` に `skill-sync`
+ランチャーを作成して PATH に追加します（`~/.zshrc` または `~/.bashrc`）。
+`git` と Python 3.9+ が必要です。再実行すると checkout を更新しますが、
+skills ライブラリや `config/agents.json` には触れません。
+
+その後：
+
+```bash
+skill-sync init
+```
+
+### 方法 B —— AI エージェントで一発インストール（貼るだけ）
 
 以下をコピーして任意の AI エージェント（Claude Code、Codex、Cursor…）に貼り付けると、
 リポジトリのクローン・エージェント検出・同期まで実行します：
@@ -80,7 +98,7 @@ Python 3.9+ が必要。既存のスキルを上書きしないで —— 同名
 > と言うだけで再同期できます —— `skill-sync` スキルは各エージェントにミラーされている
 > ので、コマンドを覚える必要はありません。
 
-### 方法 B —— 手動
+### 方法 C —— 手動
 
 依存は **Python 3.9+** のみ。クローンして実行するだけ：
 
@@ -97,17 +115,20 @@ python3 bin/skill-sync.py --version
 
 ```bash
 # 1. 管理するインストール済みエージェントを選ぶ（対話式、または --all）
-python3 bin/skill-sync.py init
+skill-sync init
 
 # 2. 同期内容をプレビュー（何も変更されない）
-python3 bin/skill-sync.py
+skill-sync
 
 # 3. 実行
-python3 bin/skill-sync.py --apply
+skill-sync --apply
 
 # 4. コミットして push（このリポジトリが唯一の情報源）
 git add -A && git commit -m "sync skills" && git push
 ```
+
+インストーラーではなく手動 `git clone` の場合は、`skill-sync` を
+`python3 bin/skill-sync.py` に読み替えてください。
 
 ## コマンド
 

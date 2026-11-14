@@ -58,7 +58,25 @@ one agent and the next sync shares it with the rest.
 
 ## Install
 
-### Option A — via your AI agent (paste & go)
+### Option A — one line (macOS / Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/xinpengfei520/skill-sync/main/install.sh | sh
+```
+
+Clones the tool to `~/.skill-sync/tool` (or reuses an existing checkout such as
+`~/skill-sync`), writes a `skill-sync` launcher into `~/.local/bin`, and adds
+that directory to your shell PATH (`~/.zshrc` or `~/.bashrc`). Needs `git` and
+Python 3.9+. Re-running updates the checkout; it never touches your skills
+library or `config/agents.json`.
+
+Then:
+
+```bash
+skill-sync init
+```
+
+### Option B — via your AI agent (paste & go)
 
 Copy this and paste it to any AI agent (Claude Code, Codex, Cursor, …). It clones
 the repo, detects your installed agents, and syncs everything:
@@ -82,7 +100,7 @@ with different content, stop and show me.
 > — the `skill-sync` skill is mirrored into every agent, so there are no commands
 > to remember.
 
-### Option B — manual
+### Option C — manual
 
 No dependencies beyond **Python 3.9+**. Just clone and run:
 
@@ -100,17 +118,20 @@ it and keep your skills repo elsewhere, point at it with
 
 ```bash
 # 1. Choose which installed agents to manage (interactive, or --all)
-python3 bin/skill-sync.py init
+skill-sync init
 
 # 2. Preview what a sync would do (nothing changes)
-python3 bin/skill-sync.py
+skill-sync
 
 # 3. Apply
-python3 bin/skill-sync.py --apply
+skill-sync --apply
 
 # 4. Commit & push (this repo is the source of truth)
 git add -A && git commit -m "sync skills" && git push
 ```
+
+Working from a plain `git clone` instead of the installer? Run
+`python3 bin/skill-sync.py` wherever `skill-sync` appears.
 
 ## Commands
 

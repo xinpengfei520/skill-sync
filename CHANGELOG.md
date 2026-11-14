@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **One-line installer** — `curl -fsSL …/install.sh | sh` clones the tool to
+  `~/.skill-sync/tool` (or reuses an existing checkout such as `~/skill-sync`),
+  writes a `skill-sync` launcher into `~/.local/bin`, and adds that directory to
+  PATH in `~/.zshrc` / `~/.bashrc` through an idempotent marker block. Re-running
+  updates the checkout; an existing `~/.skill-sync/home`, `config/agents.json`,
+  and the skills library are never touched, and `python3 bin/skill-sync.py`
+  keeps working for manual clones.
+
 ## [0.4.1] — 2026-11-14
 
 ### Added
