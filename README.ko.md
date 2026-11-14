@@ -119,6 +119,7 @@ git add -A && git commit -m "sync skills" && git push
 | `agent remove <name> [--prune-links]` | 단일 에이전트 동기화 중지, 선택적으로 라이브러리를 가리키는 링크 회수 |
 | `status` | 플랫폼, 에이전트 표, 자동 동기화 상태, 드라이런 요약 |
 | `list` | 알려진 모든 에이전트와 설치/관리 상태 표시 |
+| `doctor [--agent NAME] [--json] [--strict]` | 읽기 전용 점검: 스킬 수, 크기, frontmatter 유효성, 최적화 제안 |
 | `watch --interval 10m` | 포그라운드에서 일정 간격마다 동기화 |
 | `schedule --interval 1h` | OS 기본 타이머 등록(launchd / 작업 스케줄러 / systemd) |
 | `unschedule` | 타이머 제거 |
@@ -152,6 +153,27 @@ python3 bin/skill-sync.py agent remove dsh --prune-links --apply
 `agent remove`는 선택만 변경합니다. 기존 링크는 `--prune-links`를 줄 때까지 남습니다
 (기본은 드라이런, `--apply`로 삭제). 라이브러리를 가리키는 링크만 회수하며, 실제
 디렉터리와 외부 허브로 향하는 링크는 보고만 하고 그대로 둡니다.
+
+### 점검
+
+```bash
+python3 bin/skill-sync.py doctor          # 사람이 읽는 보고서
+python3 bin/skill-sync.py doctor --json   # 기계 판독용
+python3 bin/skill-sync.py doctor --strict # error 가 있으면 종료 코드 1
+```
+
+`--limit N` 은 크기 표의 행 수(`--all` 은 모든 스킬과 모든 info 표시),
+`--agent NAME` 은 특정 에이전트만 봅니다.
+
+`doctor` 는 전혀 수정하지 않습니다. 설치된 스킬 수, 각 스킬의 크기,
+name + description 이 컨텍스트에서 차지하는 양, 에이전트별 동기화 불일치
+(누락 링크, 끊어진 링크, 미러링을 막는 실제 디렉터리)를 보고합니다. 검사
+항목은 Agent Skills 사양을 따릅니다:
+
+- `name` 과 `description` 이 있는 파싱 가능한 frontmatter
+- `name` 은 kebab-case, 64자 이하
+- `description` 은 1024자 이하이며 `<`, `>` 를 포함하지 않음
+- `SKILL.md` 는 500줄 이하(세부 내용은 `references/` 로)
 
 ### 자동 동기화
 

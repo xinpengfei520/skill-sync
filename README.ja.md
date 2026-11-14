@@ -120,6 +120,7 @@ git add -A && git commit -m "sync skills" && git push
 | `agent remove <name> [--prune-links]` | 単一エージェントの同期を停止。任意でライブラリを指すリンクを回収 |
 | `status` | プラットフォーム、エージェント一覧、自動同期の状態、ドライラン概要 |
 | `list` | 既知のすべてのエージェントとその状態を表示 |
+| `doctor [--agent NAME] [--json] [--strict]` | 読み取り専用のヘルスチェック：スキル数、サイズ、frontmatter の妥当性、最適化の提案 |
 | `watch --interval 10m` | フォアグラウンドで一定間隔ごとに同期 |
 | `schedule --interval 1h` | OS ネイティブのタイマーを登録（launchd / タスク スケジューラ / systemd） |
 | `unschedule` | タイマーを削除 |
@@ -152,6 +153,27 @@ python3 bin/skill-sync.py agent remove dsh --prune-links --apply
 `agent remove` は選択だけを変更します。既存のリンクは `--prune-links` を付けるまで
 残ります（既定はドライラン、`--apply` で削除）。ライブラリを指すリンクのみを回収し、
 実ディレクトリや外部ハブへのリンクは報告したうえでそのまま残します。
+
+### ヘルスチェック
+
+```bash
+python3 bin/skill-sync.py doctor          # 人間が読むレポート
+python3 bin/skill-sync.py doctor --json   # 機械可読
+python3 bin/skill-sync.py doctor --strict # error があれば終了コード 1
+```
+
+`--limit N` はサイズ表の行数（`--all` で全スキルと全 info を表示）、
+`--agent NAME` は対象エージェントを絞り込みます。
+
+`doctor` は完全に読み取り専用です。インストール済みスキルの数、各スキルの
+サイズ、name + description がコンテキストに占める量、各エージェントの同期
+ずれ（欠落リンク、ダングリングリンク、ミラーを妨げる実ディレクトリ）を報告
+します。チェック項目は Agent Skills 仕様に沿っています：
+
+- `name` と `description` を含む解析可能な frontmatter
+- `name` は kebab-case で 64 文字以内
+- `description` は 1024 文字以内で、`<` や `>` を含まない
+- `SKILL.md` は 500 行以内（詳細は `references/` へ）
 
 ### 自動同期
 
