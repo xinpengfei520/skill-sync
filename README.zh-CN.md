@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://image.vance.xin/skill-sync/20261114-skill-sync-architecture-2.webp" alt="skill-sync —— 把所有 Agent 的 skills 归集到一个仓库，再镜像回去" width="100%">
+</p>
+
 # skill-sync
 
 <p align="center">

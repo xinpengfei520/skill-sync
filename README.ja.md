@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://image.vance.xin/skill-sync/20261114-skill-sync-architecture-2.webp" alt="skill-sync — すべての Agent の skills を 1 つのリポジトリに集約し、ミラーする" width="100%">
+</p>
+
 # skill-sync
 
 <p align="center">
