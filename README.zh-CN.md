@@ -137,6 +137,7 @@ git add -A && git commit -m "sync skills" && git push
 | `status` | 平台、Agent 表、自动同步状态，以及一次 dry-run 概览 |
 | `list` | 列出所有已知 Agent 及其安装/纳管状态 |
 | `doctor [--agent NAME] [--json] [--strict]` | 只读体检：skill 数量、体积、frontmatter 是否合规，并给出优化建议 |
+| `migrate [--apply]` | 把旧布局迁移到 `~/.skill-sync`（默认 dry-run） |
 | `watch --interval 10m` | 前台循环，按间隔同步 |
 | `schedule --interval 1h` | 安装原生系统定时任务（launchd / 任务计划 / systemd） |
 | `unschedule` | 移除定时任务 |
@@ -168,6 +169,26 @@ python3 bin/skill-sync.py agent remove dsh --prune-links --apply
 `agent remove` 只改选择；已有软链会保留，直到你加 `--prune-links`（默认 dry-run，
 加 `--apply` 才删除）。只回收指向库的链接；真实目录和指向外部 hub 的链接会被报告并
 原样保留。
+
+### 目录结构
+
+```
+~/.skill-sync/
+├── skills/     技能库 —— 每个 skill 一个目录
+├── config/     agents.json（管理哪些 Agent）
+├── backups/    去重/删除前的备份
+├── logs/       定时任务的 autosync.log
+└── tool/       工具本体（一行安装时）
+```
+
+`skills/`、`config/` 以及其他被跟踪的文件组成 git 仓库；`backups/`、
+`logs/`、`tool/`、`home` 都在 `.gitignore` 里。默认只做本地提交；配置了远程
+（`origin` 或 `skill-sync backup --set`）才会推送；没有 git 时不提交，文件照常
+本地同步。
+
+`skill-sync migrate` 会把旧布局（`~/my-skills`、`~/.skill-sync-backups`、
+`~/.skill-sync/autosync.log`）搬到新结构，重指 Agent 软链，并重写定时任务。
+默认 dry-run，加 `--apply` 执行；安全的迁移也会在下一次命令运行时自动完成。
 
 ### 体检
 

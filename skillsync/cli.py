@@ -11,7 +11,7 @@ from . import agents as A
 from . import engine, runner, scheduler
 
 KNOWN = {"init", "sync", "uninstall", "agent", "status", "list", "watch",
-         "schedule", "unschedule", "update", "backup", "doctor"}
+         "schedule", "unschedule", "update", "backup", "doctor", "migrate"}
 
 
 class _C:
@@ -71,6 +71,17 @@ def cmd_status(args):
     print()
     runner.run_sync(apply=False, quiet=True)
     return 0
+
+
+def cmd_migrate(args):
+    from . import migrate as M
+    plan = M.plan()
+    if args.apply and not plan["blockers"]:
+        result = M.apply(plan, set_auto_commit=args.auto_commit)
+        M.print_report(plan, apply=True, result=result)
+        return 0 if result.get("ok") else 2
+    M.print_report(plan, apply=args.apply)
+    return 0 if not plan["blockers"] else 2
 
 
 def cmd_doctor(args):
@@ -468,6 +479,15 @@ def build_parser():
     sp = sub.add_parser("list", help="list all known agents and their state")
     sp.set_defaults(func=cmd_list)
 
+    sp = sub.add_parser("migrate",
+                        help="move the library/backups/logs under ~/.skill-sync "
+                             "(dry-run unless --apply)")
+    sp.add_argument("--apply", action="store_true", help="execute (default: dry-run)")
+    sp.add_argument("--auto-commit", action=argparse.BooleanOptionalAction,
+                    default=True,
+                    help="commit the data repo locally by default (default: on)")
+    sp.set_defaults(func=cmd_migrate)
+
     sp = sub.add_parser("doctor",
                         help="read-only health check: skill count, size, "
                              "frontmatter, and what to optimize")
@@ -528,4 +548,14 @@ def main(argv=None) -> int:
     if not getattr(args, "func", None):
         parser.print_help()
         return 0
+
+    # Consolidate the old layout once, without getting in the way:
+    # `migrate` does it explicitly, and --json output must stay parseable.
+    if args.cmd != "migrate" and not getattr(args, "json", False):
+        from . import migrate
+        try:
+            migrate.auto()
+        except Exception as e:  # never block the real command
+            print(f"skill-sync: migration skipped: {e}", file=sys.stderr)
+
     return args.func(args)

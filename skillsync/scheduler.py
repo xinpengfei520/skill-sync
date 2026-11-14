@@ -56,7 +56,7 @@ def _job_args(commit: bool, push: bool) -> list[str]:
 
 
 def _log_path() -> Path:
-    p = Path.home() / ".skill-sync" / "autosync.log"
+    p = A.LOG_DIR / "autosync.log"
     p.parent.mkdir(parents=True, exist_ok=True)
     return p
 
@@ -214,6 +214,62 @@ def status() -> dict:
     if osname == "windows":
         return _status_windows()
     return _status_linux()
+
+
+def read_installed() -> dict | None:
+    """Read the installed job's interval and flags, if we can. Read-only."""
+    osname = A.system_name()
+    if osname == "macos":
+        path = _plist_path()
+        if not path.exists():
+            return None
+        try:
+            import plistlib
+            with open(path, "rb") as f:
+                data = plistlib.load(f)
+        except Exception:
+            return None
+        args = [str(a) for a in data.get("ProgramArguments", [])]
+        seconds = int(data.get("StartInterval") or 0)
+        if seconds <= 0:
+            return None
+        env = data.get("EnvironmentVariables") or {}
+        return {"seconds": seconds, "commit": "--commit" in args,
+                "push": "--push" in args,
+                "home": env.get("SKILL_SYNC_HOME"),
+                "log": data.get("StandardOutPath")}
+    if osname == "linux":
+        svc = _systemd_dir() / "skillsync.service"
+        timer = _systemd_dir() / "skillsync.timer"
+        if not (svc.exists() and timer.exists()):
+            return None
+        m = re.search(r"^ExecStart=(.*)$",
+                      svc.read_text(encoding="utf-8", errors="replace"), re.M)
+        t = re.search(r"^OnUnitActiveSec=(\d+)",
+                      timer.read_text(encoding="utf-8", errors="replace"), re.M)
+        if not m or not t:
+            return None
+        args = m.group(1).split()
+        env = re.search(r"^Environment=SKILL_SYNC_HOME=(.*)$",
+                        svc.read_text(encoding="utf-8", errors="replace"), re.M)
+        return {"seconds": int(t.group(1)), "commit": "--commit" in args,
+                "push": "--push" in args,
+                "home": env.group(1).strip() if env else None, "log": None}
+    return None
+
+
+def running_under_job() -> bool:
+    """True when this process was started by our own scheduler entry."""
+    return (os.environ.get("XPC_SERVICE_NAME") == LABEL
+            or bool(os.environ.get("INVOCATION_ID")))
+
+
+def refresh_from_installed() -> dict | None:
+    """Re-install the current job so it picks up new paths (post-migration)."""
+    cur = read_installed()
+    if not cur:
+        return None
+    return schedule(f"{cur['seconds']}s", cur["commit"], cur["push"])
 
 
 def watch(interval: str, adopt_external: bool | None, commit: bool | None,

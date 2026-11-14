@@ -165,11 +165,12 @@ say "  version:  $VERSION"
 if [ -f "$HOME/.skill-sync/home" ]; then
   say "  library:  $(cat "$HOME/.skill-sync/home" 2>/dev/null) (existing config kept)"
 else
-  say "  library:  $TOOL_DIR/skills (default; set SKILL_SYNC_HOME to split)"
+  say "  library:  $HOME/.skill-sync/skills (default; set SKILL_SYNC_HOME to split)"
 fi
 if [ -n "${RC:-}" ] && ! printf '%s' ":$PATH:" | grep -qF ":$BIN_DIR:"; then
   say ""
   say "Open a new shell, or run:  . \"$RC\""
 fi
 say ""
-say "Next:  skill-sync init"
+say "Next:  skill-sync migrate --apply   # consolidate an existing library"
+say "       skill-sync init"

@@ -142,6 +142,7 @@ git add -A && git commit -m "sync skills" && git push
 | `status` | プラットフォーム、エージェント一覧、自動同期の状態、ドライラン概要 |
 | `list` | 既知のすべてのエージェントとその状態を表示 |
 | `doctor [--agent NAME] [--json] [--strict]` | 読み取り専用のヘルスチェック：スキル数、サイズ、frontmatter の妥当性、最適化の提案 |
+| `migrate [--apply]` | 旧レイアウトを `~/.skill-sync` に移行（`--apply` なしはドライラン） |
 | `watch --interval 10m` | フォアグラウンドで一定間隔ごとに同期 |
 | `schedule --interval 1h` | OS ネイティブのタイマーを登録（launchd / タスク スケジューラ / systemd） |
 | `unschedule` | タイマーを削除 |
@@ -174,6 +175,28 @@ python3 bin/skill-sync.py agent remove dsh --prune-links --apply
 `agent remove` は選択だけを変更します。既存のリンクは `--prune-links` を付けるまで
 残ります（既定はドライラン、`--apply` で削除）。ライブラリを指すリンクのみを回収し、
 実ディレクトリや外部ハブへのリンクは報告したうえでそのまま残します。
+
+### ディレクトリ構成
+
+```
+~/.skill-sync/
+├── skills/     スキルライブラリ（スキルごとに 1 ディレクトリ）
+├── config/     agents.json（管理対象のエージェント）
+├── backups/    削除・重複解消前のバックアップ
+├── logs/       定期実行の autosync.log
+└── tool/       ツール本体（ワンラインインストール時）
+```
+
+`skills/`、`config/` など追跡対象のファイルが git リポジトリを構成し、
+`backups/`、`logs/`、`tool/`、`home` は `.gitignore` で除外されます。既定では
+ローカルにコミットするだけです。リモート（`origin` または
+`skill-sync backup --set`）があれば push し、git がなければコミットせず
+ファイルをローカルで同期します。
+
+`skill-sync migrate` は旧レイアウト（`~/my-skills`、`~/.skill-sync-backups`、
+`~/.skill-sync/autosync.log`）を新構成へ移し、エージェントのシンボリック
+リンクを付け替え、自動同期ジョブを書き換えます。既定はドライランで、
+`--apply` で実行します。安全な移行は次のコマンド実行時にも自動で行われます。
 
 ### ヘルスチェック
 

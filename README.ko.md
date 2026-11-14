@@ -141,6 +141,7 @@ git add -A && git commit -m "sync skills" && git push
 | `status` | 플랫폼, 에이전트 표, 자동 동기화 상태, 드라이런 요약 |
 | `list` | 알려진 모든 에이전트와 설치/관리 상태 표시 |
 | `doctor [--agent NAME] [--json] [--strict]` | 읽기 전용 점검: 스킬 수, 크기, frontmatter 유효성, 최적화 제안 |
+| `migrate [--apply]` | 이전 레이아웃을 `~/.skill-sync` 로 이동(기본값은 드라이런) |
 | `watch --interval 10m` | 포그라운드에서 일정 간격마다 동기화 |
 | `schedule --interval 1h` | OS 기본 타이머 등록(launchd / 작업 스케줄러 / systemd) |
 | `unschedule` | 타이머 제거 |
@@ -174,6 +175,28 @@ python3 bin/skill-sync.py agent remove dsh --prune-links --apply
 `agent remove`는 선택만 변경합니다. 기존 링크는 `--prune-links`를 줄 때까지 남습니다
 (기본은 드라이런, `--apply`로 삭제). 라이브러리를 가리키는 링크만 회수하며, 실제
 디렉터리와 외부 허브로 향하는 링크는 보고만 하고 그대로 둡니다.
+
+### 디렉터리 구조
+
+```
+~/.skill-sync/
+├── skills/     스킬 라이브러리(스킬마다 디렉터리 1개)
+├── config/     agents.json(관리할 에이전트)
+├── backups/    삭제·중복 정리 전 백업
+├── logs/       정기 실행의 autosync.log
+└── tool/       도구 본체(한 줄 설치 시)
+```
+
+`skills/`, `config/` 등 추적 대상 파일이 git 저장소를 구성하고 `backups/`,
+`logs/`, `tool/`, `home` 은 `.gitignore` 로 제외됩니다. 기본적으로 로컬에만
+커밋하며, 원격(`origin` 또는 `skill-sync backup --set`)이 있으면 push 합니다.
+git 이 없으면 커밋하지 않고 파일만 로컬에서 동기화합니다.
+
+`skill-sync migrate` 는 이전 레이아웃(`~/my-skills`, `~/.skill-sync-backups`,
+`~/.skill-sync/autosync.log`)을 새 구조로 옮기고 에이전트 심볼릭 링크를
+다시 연결하며 자동 동기화 작업을 다시 씁니다. 기본은 드라이런이고
+`--apply` 로 실행합니다. 안전한 마이그레이션은 다음 명령 실행 시 자동으로도
+수행됩니다.
 
 ### 점검
 

@@ -7,6 +7,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Consolidated layout** — skills, config, backups and logs now live under one
+  directory: `~/.skill-sync/skills/` (the library), `~/.skill-sync/config/`,
+  `~/.skill-sync/backups/`, `~/.skill-sync/logs/`, plus `~/.skill-sync/tool/`
+  for one-line installs. The data repo still tracks `skills/` and `config/`
+  (relative paths are unchanged); `backups/`, `logs/`, `tool/` and `home` are
+  gitignored.
+- **`migrate` command** — moves `~/my-skills`, `~/.skill-sync-backups` and
+  `~/.skill-sync/autosync.log` into the consolidated layout, keeps the repo's
+  `.git` and remotes, repoints the agent symlinks, and rewrites the auto-sync
+  job so it no longer pins the old paths. Dry-run by default; a safe migration
+  also runs automatically on the next command.
+- **Local commits by default** — `sync` commits the data repo when git is
+  available, pushes only when a remote is configured (`origin` or the backup
+  remote), and skips committing entirely without git. `auto_commit` defaults
+  to true; `auto_push: null` means "push when a remote exists".
 - **One-line installer** — `curl -fsSL …/install.sh | sh` clones the tool to
   `~/.skill-sync/tool` (or reuses an existing checkout such as `~/skill-sync`),
   writes a `skill-sync` launcher into `~/.local/bin`, and adds that directory to

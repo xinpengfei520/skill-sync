@@ -145,6 +145,7 @@ Working from a plain `git clone` instead of the installer? Run
 | `status` | Platform, agent table, auto-sync state, and a dry-run summary |
 | `list` | All known agents with installed / managed state |
 | `doctor [--agent NAME] [--json] [--strict]` | Read-only health check: skill count, size, frontmatter validity, and what to optimize |
+| `migrate [--apply]` | Move an older layout into `~/.skill-sync` (dry-run unless `--apply`) |
 | `watch --interval 10m` | Foreground loop; sync every interval |
 | `schedule --interval 1h` | Install a native OS timer (launchd / Task Scheduler / systemd) |
 | `unschedule` | Remove the timer |
@@ -180,6 +181,28 @@ to perform it.
 `--prune-links` (dry-run by default, `--apply` to delete). Only links pointing
 into the library are reclaimed; real directories and links to outside hubs are
 reported and left untouched.
+
+### Where everything lives
+
+```
+~/.skill-sync/
+├── skills/     the library — one directory per skill
+├── config/     agents.json (which agents you manage)
+├── backups/    backups of removed duplicates
+├── logs/       autosync.log from the scheduled job
+└── tool/       the tool checkout (one-line installs)
+```
+
+`skills/`, `config/` and the repo's other tracked files form the git repo;
+`backups/`, `logs/`, `tool/` and `home` are gitignored. Commits are local by
+default. When a remote is configured (`origin` or `skill-sync backup --set`)
+the repo is pushed too; without git installed nothing is committed and the
+files are simply synced locally.
+
+`skill-sync migrate` moves an older layout (`~/my-skills`,
+`~/.skill-sync-backups`, `~/.skill-sync/autosync.log`) into this one, repoints
+the agent symlinks, and rewrites the auto-sync job. It is a dry-run unless you
+pass `--apply`; a safe migration also runs automatically on the next command.
 
 ### Health check
 

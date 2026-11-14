@@ -12,7 +12,12 @@ from . import engine
 
 
 def git_commit_push(message: str, push: bool) -> str:
+    from . import maintenance
+    if not maintenance.git_available():
+        return "skipped (git not installed)"
     repo = A.DATA_ROOT
+    maintenance.ensure_data_repo()
+
     def git(*args):
         return subprocess.run(["git", "-C", str(repo), *args],
                               capture_output=True, text=True)
@@ -47,9 +52,13 @@ def run_sync(*, apply: bool, adopt_external: bool | None = None,
     if adopt_external is None:
         adopt_external = sel.get("adopt_external", True)
     if commit is None:
-        commit = sel.get("auto_commit", False)
+        # Local commits by default; an explicit auto_commit=false opts out.
+        commit = sel.get("auto_commit", True)
     if push is None:
-        push = sel.get("auto_push", False)
+        push = sel.get("auto_push")
+        if push is None:
+            from . import maintenance
+            push = maintenance.has_push_remote()
 
     agent_list = A.managed_agents(only)
     plan = engine.build_plan(agent_list, adopt_external=adopt_external)
@@ -57,15 +66,19 @@ def run_sync(*, apply: bool, adopt_external: bool | None = None,
         engine.execute(plan, do_backup=do_backup)
 
     git_msg = None
-    if apply and commit:
-        git_msg = git_commit_push("skill-sync: auto sync", push=push)
-
     backup_msg = None
+    if apply and commit:
+        from . import maintenance
+        git_msg = maintenance.commit_local("skill-sync: auto sync")
+
     if apply and (sel.get("backup") or {}).get("enabled"):
         from . import maintenance
-        bres = maintenance.push_backup(commit_first=True)
+        bres = maintenance.push_backup(commit_first=not commit)
         backup_msg = (f"backed up to {bres['remote']}" if bres.get("ok")
                       else f"backup failed: {bres.get('error')}")
+    elif apply and commit and push:
+        from . import maintenance
+        git_msg = f"{git_msg}; {maintenance.push_origin()}"
 
     if as_json:
         summary = {
@@ -87,8 +100,9 @@ def run_sync(*, apply: bool, adopt_external: bool | None = None,
             print(f"  git: {git_msg}")
         if backup_msg and not quiet:
             print(f"  backup: {backup_msg}")
-        if apply and not commit and not quiet and (plan["collect"] or plan["adopt"]
-                                                   or plan["dedupe"]):
+        from . import maintenance
+        if (apply and not commit and not quiet and maintenance.git_available()
+                and (plan["collect"] or plan["adopt"] or plan["dedupe"])):
             print(f"\n  Review & commit in {A.DATA_ROOT}:")
             print(f"  git -C {A.DATA_ROOT} add -A && "
                   f"git -C {A.DATA_ROOT} commit -m 'sync skills' && "

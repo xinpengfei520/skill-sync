@@ -16,17 +16,36 @@ from pathlib import Path
 # They coincide in a combined checkout. Point DATA_ROOT at a separate (private)
 # skills repo by setting SKILL_SYNC_HOME.
 TOOL_ROOT = Path(__file__).resolve().parent.parent
-_HOME_FILE = Path.home() / ".skill-sync" / "home"  # remembers DATA_ROOT across runs
-if os.environ.get("SKILL_SYNC_HOME"):
-    DATA_ROOT = Path(os.path.expanduser(os.environ["SKILL_SYNC_HOME"])).resolve()
-elif _HOME_FILE.is_file() and _HOME_FILE.read_text().strip():
-    DATA_ROOT = Path(os.path.expanduser(_HOME_FILE.read_text().strip())).resolve()
-else:
-    DATA_ROOT = TOOL_ROOT
+
+# Everything skill-sync owns lives under one directory: the data repo (skills/
+# + config/), backups/, logs/, and (for one-line installs) the tool checkout.
+SKILL_SYNC_DIR = Path.home() / ".skill-sync"
+_HOME_FILE = SKILL_SYNC_DIR / "home"  # remembers DATA_ROOT across runs
+LOG_DIR = SKILL_SYNC_DIR / "logs"
+BACKUP_ROOT = SKILL_SYNC_DIR / "backups"
+
+
+def _resolve_data_root() -> Path:
+    """DATA_ROOT precedence: env > saved pointer > legacy combined checkout >
+    the consolidated ~/.skill-sync directory."""
+    if os.environ.get("SKILL_SYNC_HOME"):
+        return Path(os.path.expanduser(os.environ["SKILL_SYNC_HOME"])).resolve()
+    if _HOME_FILE.is_file() and _HOME_FILE.read_text().strip():
+        return Path(os.path.expanduser(_HOME_FILE.read_text().strip())).resolve()
+    # A plain clone that already holds config/agents.json is a combined checkout;
+    # keep using it so existing libraries do not move out from under the user.
+    if (TOOL_ROOT / "config" / "agents.json").is_file():
+        return TOOL_ROOT
+    return SKILL_SYNC_DIR
+
+
+DATA_ROOT = _resolve_data_root()
 REGISTRY_FILE = TOOL_ROOT / "config" / "registry.json"
 SELECTION_FILE = DATA_ROOT / "config" / "agents.json"
 DEFAULT_SKILLS_ROOT = DATA_ROOT / "skills"
-BACKUP_ROOT = Path.home() / ".skill-sync-backups"
+
+# State that must never be committed into the data repo when it is ~/.skill-sync.
+STATE_IGNORE_LINES = ("tool/", "backups/", "logs/", "home", "*.log")
 
 # Entries never treated as skills (system/hidden). Anything starting with "."
 # is also ignored by callers.
@@ -192,13 +211,15 @@ def load_selection() -> dict:
             if isinstance(data, list):  # legacy: [{name, skills_dir, priority}, ...]
                 return {"enabled": [a["name"] for a in data if "name" in a],
                         "disabled": [], "adopt_external": True,
-                        "auto_commit": False, "auto_push": False, "custom": []}
+                        "auto_commit": True, "auto_push": None, "custom": []}
             if isinstance(data, dict):
                 data.setdefault("enabled", "all")
                 data.setdefault("disabled", [])
                 data.setdefault("adopt_external", True)
-                data.setdefault("auto_commit", False)
-                data.setdefault("auto_push", False)
+                # Commit locally by default. auto_push=None means "push only
+                # when a remote is configured"; false opts out.
+                data.setdefault("auto_commit", True)
+                data.setdefault("auto_push", None)
                 data.setdefault("auto_update", False)
                 data.setdefault("update_remote", "origin")
                 data.setdefault("backup", {"enabled": False, "remote": None})
@@ -207,7 +228,7 @@ def load_selection() -> dict:
         except (json.JSONDecodeError, OSError):
             pass
     return {"enabled": "all", "disabled": [], "adopt_external": True,
-            "auto_commit": False, "auto_push": False, "auto_update": False,
+            "auto_commit": True, "auto_push": None, "auto_update": False,
             "update_remote": "origin", "backup": {"enabled": False, "remote": None},
             "custom": []}
 

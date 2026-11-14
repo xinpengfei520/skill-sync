@@ -4,6 +4,7 @@ different repositories once the tool and skills are split apart."""
 from __future__ import annotations
 
 import re
+import shutil
 import subprocess
 
 from . import __version__
@@ -15,6 +16,81 @@ BACKUP_REMOTE = "skillsync-backup"
 def _git(root, *args):
     return subprocess.run(["git", "-C", str(root), *args],
                           capture_output=True, text=True)
+
+
+def git_available() -> bool:
+    return shutil.which("git") is not None
+
+
+def _is_repo(root) -> bool:
+    return _git(root, "rev-parse", "--is-inside-work-tree").stdout.strip() == "true"
+
+
+def ensure_data_repo() -> bool:
+    """Make DATA_ROOT a git repo, and keep skill-sync's own state out of it.
+
+    Only needed when the library is the consolidated ~/.skill-sync directory:
+    tool/, backups/, logs/ and the `home` pointer live next to skills/ and must
+    never be committed."""
+    if not git_available():
+        return False
+    root = A.DATA_ROOT
+    root.mkdir(parents=True, exist_ok=True)
+    if not _is_repo(root):
+        _git(root, "init", "-q")
+    if root == A.SKILL_SYNC_DIR:
+        ignore = root / ".gitignore"
+        text = ignore.read_text(encoding="utf-8") if ignore.is_file() else ""
+        lines = set(text.splitlines())
+        missing = [x for x in A.STATE_IGNORE_LINES if x not in lines]
+        if missing:
+            if text and not text.endswith("\n"):
+                text += "\n"
+            text += ("\n# skill-sync managed state — never part of the skills repo\n"
+                     + "\n".join(missing) + "\n")
+            ignore.write_text(text, encoding="utf-8")
+    return True
+
+
+def commit_local(message: str) -> str:
+    """Commit the data repo locally. Never pushes. No-op without git."""
+    if not git_available():
+        return "skipped (git not installed — files stay local)"
+    if not ensure_data_repo():
+        return "skipped (not a git repo)"
+    root = A.DATA_ROOT
+    _git(root, "add", "-A")
+    if not _git(root, "status", "--porcelain").stdout.strip():
+        return "nothing to commit"
+    c = _git(root, "commit", "-m", message)
+    if c.returncode != 0:
+        first = (c.stderr.strip().splitlines() or ["unknown error"])[0]
+        return f"commit failed: {first}"
+    return "committed locally"
+
+
+def has_push_remote() -> bool:
+    if not git_available():
+        return False
+    b = backup_config()
+    if b.get("enabled") and b.get("remote"):
+        return True
+    return _git(A.DATA_ROOT, "remote", "get-url", "origin").returncode == 0
+
+
+def push_origin() -> str:
+    """Push the data repo to origin, if there is one."""
+    if not git_available():
+        return "push skipped (git not installed)"
+    if _git(A.DATA_ROOT, "remote", "get-url", "origin").returncode != 0:
+        return "no origin remote (committed locally)"
+    # `-u` also sets the upstream on the first push, so plain `git push` works
+    # from then on.
+    p = _git(A.DATA_ROOT, "push", "-u", "origin", "HEAD")
+    if p.returncode != 0:
+        first = (p.stderr.strip().splitlines() or ["unknown error"])[0]
+        return f"push failed: {first}"
+    return "pushed to origin"
 
 
 def _branch(root) -> str:
@@ -112,6 +188,8 @@ def disable_backup() -> None:
 
 
 def push_backup(commit_first: bool = True) -> dict:
+    if not git_available():
+        return {"ok": False, "error": "git is not installed"}
     root = A.DATA_ROOT
     b = backup_config()
     url = b.get("remote")
