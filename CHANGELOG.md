@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-11-14
+
 ### Added
 - **Consolidated layout** — skills, config, backups and logs now live under one
   directory: `~/.skill-sync/skills/` (the library), `~/.skill-sync/config/`,
@@ -159,6 +161,7 @@ Initial release.
   codebuddy, qoder, trae, windsurf.
 - Resolved the `aihot` naming conflict (kept the Claude Code version).
 
+[0.4.2]: https://github.com/xinpengfei520/skill-sync/releases/tag/v0.4.2
 [0.4.1]: https://github.com/xinpengfei520/skill-sync/releases/tag/v0.4.1
 [0.4.0]: https://github.com/xinpengfei520/skill-sync/releases/tag/v0.4.0
 [0.3.0]: https://github.com/xinpengfei520/skill-sync/releases/tag/v0.3.0

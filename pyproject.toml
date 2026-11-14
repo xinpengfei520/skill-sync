@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "skill-sync"
-version = "0.4.1"
+version = "0.4.2"
 description = "One Git-managed source of truth for AI-agent Skills; mirror to every agent via symlinks."
 readme = "README.md"
 requires-python = ">=3.9"
