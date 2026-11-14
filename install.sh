@@ -101,6 +101,23 @@ fi
 
 is_checkout "$TOOL_DIR" || die "$TOOL_DIR does not look like a skill-sync checkout"
 
+# --- bundled skill ----------------------------------------------------------
+# Seed the library with the bundled skill-sync skill, but never overwrite a copy
+# the user already has (it may be customized).
+if [ -f "$HOME/.skill-sync/home" ]; then
+  LIB_ROOT=$(cat "$HOME/.skill-sync/home" 2>/dev/null || true)
+  LIB_DIR=${LIB_ROOT:-$HOME/.skill-sync}/skills
+elif [ -f "$TOOL_DIR/config/agents.json" ]; then
+  LIB_DIR=$TOOL_DIR/skills        # legacy combined checkout
+else
+  LIB_DIR=$HOME/.skill-sync/skills
+fi
+if [ -d "$TOOL_DIR/skills/skill-sync" ] && [ ! -e "$LIB_DIR/skill-sync" ]; then
+  mkdir -p "$LIB_DIR"
+  cp -R "$TOOL_DIR/skills/skill-sync" "$LIB_DIR/skill-sync"
+  say "Installed the bundled skill-sync skill into $LIB_DIR"
+fi
+
 # --- launcher ---------------------------------------------------------------
 LAUNCHER=$BIN_DIR/skill-sync
 mkdir -p "$BIN_DIR"

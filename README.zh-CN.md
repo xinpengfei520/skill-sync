@@ -63,7 +63,8 @@ curl -fsSL https://raw.githubusercontent.com/xinpengfei520/skill-sync/main/insta
 会把工具克隆到 `~/.skill-sync/tool`（若已有 checkout，例如 `~/skill-sync`，
 则直接复用），在 `~/.local/bin` 生成 `skill-sync` 启动器，并把该目录加入你的
 shell PATH（`~/.zshrc` 或 `~/.bashrc`）。需要 `git` 和 Python 3.9+。重复执行
-即更新 checkout；不会改动你的 skills 库或 `config/agents.json`。
+即更新 checkout；不会改动你的 skills 库或 `config/agents.json`。首次安装会把
+工具自带的 `skill-sync` skill 复制进技能库（已存在则不覆盖）。
 
 然后：
 

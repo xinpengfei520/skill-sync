@@ -22,6 +22,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   available, pushes only when a remote is configured (`origin` or the backup
   remote), and skips committing entirely without git. `auto_commit` defaults
   to true; `auto_push: null` means "push when a remote exists".
+- **Bundled skill on install** — the one-line installer seeds the library with
+  the tool's own `skill-sync` skill (an existing copy is never overwritten), so
+  the "just tell your agent to sync my skills" workflow works on a fresh
+  install. Combined checkouts already have it and are left alone.
 - **One-line installer** — `curl -fsSL …/install.sh | sh` clones the tool to
   `~/.skill-sync/tool` (or reuses an existing checkout such as `~/skill-sync`),
   writes a `skill-sync` launcher into `~/.local/bin`, and adds that directory to

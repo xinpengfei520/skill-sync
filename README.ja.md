@@ -67,7 +67,9 @@ curl -fsSL https://raw.githubusercontent.com/xinpengfei520/skill-sync/main/insta
 `~/skill-sync` があればそれを再利用）、`~/.local/bin` に `skill-sync`
 ランチャーを作成して PATH に追加します（`~/.zshrc` または `~/.bashrc`）。
 `git` と Python 3.9+ が必要です。再実行すると checkout を更新しますが、
-skills ライブラリや `config/agents.json` には触れません。
+skills ライブラリや `config/agents.json` には触れません。初回インストール時に
+ツール同梱の `skill-sync` スキルをライブラリへコピーします（既存のコピーは
+上書きしません）。
 
 その後：
 
