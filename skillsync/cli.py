@@ -118,6 +118,9 @@ def cmd_update(args):
     else:
         print(f"{_C.G}{res.get('message', 'already up to date')}{_C.R} "
               f"(v{res.get('version', __version__)}).")
+    msg = M.sync_bundled_skill()
+    if msg:
+        print(f"  {msg}")
     return 0
 
 
@@ -551,11 +554,20 @@ def main(argv=None) -> int:
 
     # Consolidate the old layout once, without getting in the way:
     # `migrate` does it explicitly, and --json output must stay parseable.
-    if args.cmd != "migrate" and not getattr(args, "json", False):
-        from . import migrate
+    if args.cmd != "migrate":
+        from . import maintenance, migrate
+        as_json = getattr(args, "json", False)
+        if not as_json:
+            try:
+                migrate.auto()
+            except Exception as e:  # never block the real command
+                print(f"skill-sync: migration skipped: {e}", file=sys.stderr)
         try:
-            migrate.auto()
-        except Exception as e:  # never block the real command
-            print(f"skill-sync: migration skipped: {e}", file=sys.stderr)
+            msg = maintenance.sync_bundled_skill()
+            if msg and not as_json:
+                print(f"skill-sync: {msg}")
+        except Exception as e:
+            print(f"skill-sync: bundled skill refresh skipped: {e}",
+                  file=sys.stderr)
 
     return args.func(args)

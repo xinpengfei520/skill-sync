@@ -68,8 +68,9 @@ Clones the tool to `~/.skill-sync/tool` (or reuses an existing checkout such as
 `~/skill-sync`), writes a `skill-sync` launcher into `~/.local/bin`, and adds
 that directory to your shell PATH (`~/.zshrc` or `~/.bashrc`). Needs `git` and
 Python 3.9+. Re-running updates the checkout; it never touches your skills
-library or `config/agents.json`. The tool's own `skill-sync` skill is copied
-into the library on first install (an existing copy is never overwritten).
+library or `config/agents.json`. The tool's own `skill-sync` skill is seeded
+into the library on install and refreshed from the tool whenever its content
+differs (the previous copy is kept under `backups/`).
 
 Then:
 

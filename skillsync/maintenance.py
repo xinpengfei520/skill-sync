@@ -3,6 +3,8 @@ library (push the DATA repo to a user-configured Git remote). These are two
 different repositories once the tool and skills are split apart."""
 from __future__ import annotations
 
+import datetime as _dt
+import hashlib
 import re
 import shutil
 import subprocess
@@ -96,6 +98,42 @@ def push_origin() -> str:
 def _branch(root) -> str:
     b = _git(root, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
     return b if b and b != "HEAD" else "main"
+
+
+def _hash_file(path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 16), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def sync_bundled_skill() -> str | None:
+    """Keep the library's `skill-sync` copy equal to the tool's bundled one.
+
+    The tool version is authoritative: when the content differs, the old copy is
+    moved to BACKUP_ROOT/bundled-skill-<stamp>/ first, so a customization is
+    never lost silently. Symlinked or missing sources are left alone."""
+    src = A.TOOL_ROOT / "skills" / "skill-sync"
+    src_md = src / "SKILL.md"
+    if not src_md.is_file():
+        return None
+    dst = A.skills_root() / "skill-sync"
+    if A.is_link(dst):
+        return None  # the user linked it somewhere; don't replace a link
+    if not dst.exists():
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src, dst, ignore=shutil.ignore_patterns(".DS_Store"))
+        return "installed the bundled skill-sync skill"
+    dst_md = dst / "SKILL.md"
+    if dst_md.is_file() and _hash_file(dst_md) == _hash_file(src_md):
+        return None
+    stamp = _dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup = A.BACKUP_ROOT / f"bundled-skill-{stamp}" / "skill-sync"
+    backup.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(dst), str(backup))
+    shutil.copytree(src, dst, ignore=shutil.ignore_patterns(".DS_Store"))
+    return f"refreshed the bundled skill-sync skill (previous copy: {backup})"
 
 
 def disk_version() -> str:

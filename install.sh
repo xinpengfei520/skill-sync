@@ -112,10 +112,20 @@ elif [ -f "$TOOL_DIR/config/agents.json" ]; then
 else
   LIB_DIR=$HOME/.skill-sync/skills
 fi
-if [ -d "$TOOL_DIR/skills/skill-sync" ] && [ ! -e "$LIB_DIR/skill-sync" ]; then
-  mkdir -p "$LIB_DIR"
-  cp -R "$TOOL_DIR/skills/skill-sync" "$LIB_DIR/skill-sync"
-  say "Installed the bundled skill-sync skill into $LIB_DIR"
+if [ -d "$TOOL_DIR/skills/skill-sync" ]; then
+  if [ ! -e "$LIB_DIR/skill-sync" ] && [ ! -L "$LIB_DIR/skill-sync" ]; then
+    mkdir -p "$LIB_DIR"
+    cp -R "$TOOL_DIR/skills/skill-sync" "$LIB_DIR/skill-sync"
+    say "Installed the bundled skill-sync skill into $LIB_DIR"
+  elif [ -d "$LIB_DIR/skill-sync" ] && [ ! -L "$LIB_DIR/skill-sync" ] \
+       && ! cmp -s "$TOOL_DIR/skills/skill-sync/SKILL.md" \
+                 "$LIB_DIR/skill-sync/SKILL.md"; then
+    BK="$HOME/.skill-sync/backups/bundled-skill-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$BK"
+    mv "$LIB_DIR/skill-sync" "$BK/skill-sync"
+    cp -R "$TOOL_DIR/skills/skill-sync" "$LIB_DIR/skill-sync"
+    say "Refreshed the bundled skill-sync skill (previous copy: $BK)"
+  fi
 fi
 
 # --- launcher ---------------------------------------------------------------

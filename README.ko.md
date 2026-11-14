@@ -67,7 +67,8 @@ curl -fsSL https://raw.githubusercontent.com/xinpengfei520/skill-sync/main/insta
 추가합니다(`~/.zshrc` 또는 `~/.bashrc`). `git` 과 Python 3.9+ 가 필요합니다.
 다시 실행하면 checkout 을 업데이트하며, skills 라이브러리나
 `config/agents.json` 은 건드리지 않습니다. 첫 설치 시 도구에 포함된
-`skill-sync` 스킬을 라이브러리로 복사합니다(이미 있으면 덮어쓰지 않음).
+`skill-sync` 스킬을 라이브러리로 복사하고, 내용이 다르면 도구 버전으로
+갱신합니다(이전 사본은 `backups/` 에 보관).
 
 그다음:
 

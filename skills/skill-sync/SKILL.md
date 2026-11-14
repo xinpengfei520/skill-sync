@@ -5,62 +5,74 @@ description: >-
   consolidate, or centralize skills across local agents (Claude Code, Codex,
   Cursor, Gemini, Copilot, Windsurf, WorkBuddy, Hermes, etc.); when a new skill
   was installed into only one agent and should be shared with the others; to
-  choose which agents to manage; or to set up automatic/scheduled syncing. Also
-  triggers on "同步 skills", "sync my skills", "把这个 skill 同步到所有 agent",
-  "collect skills", "整理 skills", "定时同步 skills", "自动同步".
+  choose which agents to manage; to check skill health (count, size, frontmatter,
+  context cost); or to migrate an older on-disk layout. Also triggers on
+  "同步 skills", "sync my skills", "把这个 skill 同步到所有 agent",
+  "collect skills", "整理 skills", "定时同步 skills", "自动同步",
+  "体检 skills", "迁移 skills".
 ---
 
 # skill-sync
 
-Keep every local AI agent's Skills in sync from one Git-managed source
-(`~/skill-sync`). Skills live under `skills/`; every managed agent points at them
-with symlinks, so editing a skill once updates all agents.
+One Git-managed library for every local agent's Skills. The library is
+`~/.skill-sync/skills/` (one directory per skill); every managed agent points at
+it with symlinks, so editing a skill once updates all agents. `~/.skill-sync/`
+also holds `config/agents.json` (which agents are managed), `backups/` and
+`logs/`.
+
+If `skill-sync` is not on PATH, run `python3 <checkout>/bin/skill-sync.py`
+instead of `skill-sync` in every command below.
 
 ## Commands
 
-Run via the repo (no install needed). Always dry-run first, then apply.
+Always dry-run first, then apply.
 
 ```bash
-# Detect installed agents and choose which to manage (first-time setup)
-python3 ~/skill-sync/bin/skill-sync.py init            # interactive
-python3 ~/skill-sync/bin/skill-sync.py init --all      # manage all installed
+skill-sync init                  # detect agents, choose which to manage
+skill-sync                       # preview a sync
+skill-sync --apply               # execute
 
-# Preview then apply a sync
-python3 ~/skill-sync/bin/skill-sync.py                 # dry-run
-python3 ~/skill-sync/bin/skill-sync.py --apply         # execute
+skill-sync status                # platform, library, agents, dry-run summary
+skill-sync list                  # every known agent + installed/managed state
+skill-sync doctor                # read-only health: count, size, frontmatter
+skill-sync doctor --json         # machine-readable
 
-# Overview / discovery
-python3 ~/skill-sync/bin/skill-sync.py status          # platform, agents, dry-run
-python3 ~/skill-sync/bin/skill-sync.py list            # all known agents + state
+skill-sync agent add cursor      # start managing one agent
+skill-sync agent remove cursor --prune-links --apply
+skill-sync uninstall <skill> --apply   # remove from the library + every agent
 
-# Auto-sync
-python3 ~/skill-sync/bin/skill-sync.py schedule --interval 1h   # native OS timer
-python3 ~/skill-sync/bin/skill-sync.py unschedule              # remove timer
-python3 ~/skill-sync/bin/skill-sync.py watch --interval 10m    # foreground loop
+skill-sync migrate               # preview moving an older layout (dry-run)
+skill-sync migrate --apply       # move ~/my-skills etc. into ~/.skill-sync
+
+skill-sync schedule --interval 1h   # native OS timer
+skill-sync unschedule
+skill-sync watch --interval 10m     # foreground loop
+skill-sync update [--check]         # update the tool itself
+skill-sync backup [--set URL]       # optional backup remote
 ```
-
-Common `sync` flags: `--adopt-external` (centralize skills symlinked to an
-outside hub like `~/.agents`), `--agent NAME` (limit), `--commit --push` (git
-after apply), `--json`, `--no-backup`.
 
 ## How it works
 
-1. **Collect** — scans each managed agent's skills dir for real directories (not
-   symlinks) with a `SKILL.md`: new → moved into the repo; identical duplicate →
-   backed up + removed; same name but different content → **conflict**, left
+1. **Collect** — scan each managed agent's skills dir for real directories (not
+   symlinks) with a `SKILL.md`: new → moved into the library; identical duplicate
+   → backed up and removed; same name with different content → **conflict**, left
    untouched and reported.
-2. **Mirror** — every repo skill is symlinked into every installed managed agent.
-   A pre-existing real dir is never overwritten (reported as blocked).
+2. **Mirror** — every library skill is symlinked into every installed managed
+   agent. An existing real directory is never overwritten (reported as blocked).
+
+Sync commits the library locally when git is available, and pushes only when a
+remote is configured; without git it just keeps syncing files.
 
 ## Guidance
 
 - **Never `--apply` without showing the dry-run first** and getting an OK —
-  collection moves/removes real directories.
-- Surface any **CONFLICT** entries (same name, different content); nothing is
-  changed for those. The user picks which version wins (edit the repo copy, or
-  delete the losing copy and re-sync).
-- After applying, remind the user to commit & push:
-  `git -C ~/skill-sync add -A && git -C ~/skill-sync commit -m "sync skills" && git -C ~/skill-sync push`
-- Managed agents & their paths: `config/agents.json` (selection) +
-  `config/registry.json` (known agents, per-OS paths).
-- Removed duplicates are backed up under `~/.skill-sync-backups/`.
+  collection moves and removes real directories.
+- Surface any **CONFLICT** entries; nothing is changed for those. The user picks
+  which version wins (edit the library copy, or delete the losing copy and
+  re-sync).
+- This skill's own bundled copy is refreshed from the tool on install/update
+  when the content differs; the replaced copy is kept under `backups/`.
+- Removed duplicates and replaced files are backed up under
+  `~/.skill-sync/backups/`.
+- Managed agents live in `config/agents.json`; known agents and their per-OS
+  paths live in the tool's `config/registry.json`.
