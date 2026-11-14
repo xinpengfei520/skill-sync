@@ -9,6 +9,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.4.0] — 2026-11-13
 
 ### Added
+- **`doctor` command** — a read-only health check for the library and every
+  managed agent: how many skills are installed, how large each one is, what the
+  name + description block costs in context, and which agents are out of sync
+  (missing, dangling, or blocked links). It validates frontmatter against the
+  Agent Skills limits (name/description present, kebab-case name ≤ 64 chars,
+  description ≤ 1024 chars without angle brackets, `SKILL.md` < 500 lines) and
+  ends with concrete suggestions. `--json` for tooling, `--limit`/`--all` to
+  control the size table, `--strict` to exit 1 when an error is found.
 - **Antigravity agents** — `antigravity`, `antigravity-ide`, and
   `antigravity-cli` are now in the registry, pointing at
   `~/.gemini/{antigravity,antigravity-ide,antigravity-cli}/skills`. Note that

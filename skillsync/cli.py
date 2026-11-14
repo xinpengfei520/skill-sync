@@ -11,7 +11,7 @@ from . import agents as A
 from . import engine, runner, scheduler
 
 KNOWN = {"init", "sync", "uninstall", "agent", "status", "list", "watch",
-         "schedule", "unschedule", "update", "backup"}
+         "schedule", "unschedule", "update", "backup", "doctor"}
 
 
 class _C:
@@ -70,6 +70,17 @@ def cmd_status(args):
     _print_agents_table()
     print()
     runner.run_sync(apply=False, quiet=True)
+    return 0
+
+
+def cmd_doctor(args):
+    from . import doctor as D
+    if args.json:
+        return D.run_json(args.agent, args.limit, args.all)
+    data = D.run(args.agent, args.limit, args.all)
+    D.print_report(data, limit=0 if args.all else args.limit, show_all=args.all)
+    if args.strict and data["counts"]["error"]:
+        return 1
     return 0
 
 
@@ -456,6 +467,20 @@ def build_parser():
 
     sp = sub.add_parser("list", help="list all known agents and their state")
     sp.set_defaults(func=cmd_list)
+
+    sp = sub.add_parser("doctor",
+                        help="read-only health check: skill count, size, "
+                             "frontmatter, and what to optimize")
+    sp.add_argument("--agent", action="append", metavar="NAME",
+                    help="limit the agent view to specific agent(s)")
+    sp.add_argument("--limit", type=int, default=10, metavar="N",
+                    help="how many of the largest skills to show (default: 10)")
+    sp.add_argument("--all", action="store_true",
+                    help="show every skill in the size table and every info finding")
+    sp.add_argument("--json", action="store_true", help="machine-readable output")
+    sp.add_argument("--strict", action="store_true",
+                    help="exit 1 when an error is found (for CI)")
+    sp.set_defaults(func=cmd_doctor)
 
     sp = sub.add_parser("watch", help="run sync on an interval in the foreground")
     sp.add_argument("--interval", default="10m", help="e.g. 1m, 10m, 1h, 24h")

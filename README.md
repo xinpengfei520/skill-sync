@@ -119,6 +119,7 @@ git add -A && git commit -m "sync skills" && git push
 | `agent remove <name> [--prune-links]` | Stop syncing one agent; optionally reclaim its symlinks |
 | `status` | Platform, agent table, auto-sync state, and a dry-run summary |
 | `list` | All known agents with installed / managed state |
+| `doctor [--agent NAME] [--json] [--strict]` | Read-only health check: skill count, size, frontmatter validity, and what to optimize |
 | `watch --interval 10m` | Foreground loop; sync every interval |
 | `schedule --interval 1h` | Install a native OS timer (launchd / Task Scheduler / systemd) |
 | `unschedule` | Remove the timer |
@@ -154,6 +155,27 @@ to perform it.
 `--prune-links` (dry-run by default, `--apply` to delete). Only links pointing
 into the library are reclaimed; real directories and links to outside hubs are
 reported and left untouched.
+
+### Health check
+
+```bash
+python3 bin/skill-sync.py doctor          # human-readable report
+python3 bin/skill-sync.py doctor --json   # machine-readable
+python3 bin/skill-sync.py doctor --strict # exit 1 when an error is found
+```
+
+`--limit N` sets how many of the largest skills to list (`--all` lists every
+skill and every info finding); `--agent NAME` narrows the agent view.
+
+`doctor` is read-only. It reports how many skills are installed, how big each
+one is, what the name + description block costs in context, and whether any
+agent is out of sync (missing links, dangling links, real directories blocking
+the mirror). It checks each skill against the Agent Skills limits:
+
+- frontmatter with a `name` and `description` that an agent can parse,
+- `name` is kebab-case and at most 64 characters,
+- `description` is at most 1024 characters and has no `<` or `>`,
+- `SKILL.md` stays under 500 lines (move detail into `references/`).
 
 ### Auto-sync
 

@@ -112,6 +112,7 @@ git add -A && git commit -m "sync skills" && git push
 | `agent remove <name> [--prune-links]` | 停止同步单个 Agent；可选回收它指向库的软链 |
 | `status` | 平台、Agent 表、自动同步状态，以及一次 dry-run 概览 |
 | `list` | 列出所有已知 Agent 及其安装/纳管状态 |
+| `doctor [--agent NAME] [--json] [--strict]` | 只读体检：skill 数量、体积、frontmatter 是否合规，并给出优化建议 |
 | `watch --interval 10m` | 前台循环，按间隔同步 |
 | `schedule --interval 1h` | 安装原生系统定时任务（launchd / 任务计划 / systemd） |
 | `unschedule` | 移除定时任务 |
@@ -143,6 +144,26 @@ python3 bin/skill-sync.py agent remove dsh --prune-links --apply
 `agent remove` 只改选择；已有软链会保留，直到你加 `--prune-links`（默认 dry-run，
 加 `--apply` 才删除）。只回收指向库的链接；真实目录和指向外部 hub 的链接会被报告并
 原样保留。
+
+### 体检
+
+```bash
+python3 bin/skill-sync.py doctor          # 人类可读报告
+python3 bin/skill-sync.py doctor --json   # 机器可读
+python3 bin/skill-sync.py doctor --strict # 有 error 时退出码 1
+```
+
+`--limit N` 控制体积表显示多少个（`--all` 显示全部 skill 和全部 info）；
+`--agent NAME` 只看指定 Agent。
+
+`doctor` 全程只读。它会报告已安装 skill 的数量、每个 skill 的体积、name +
+description 占用的上下文，以及各 Agent 是否失步（缺链、悬空链、挡住镜像的真实
+目录）。检查项对齐 Agent Skills 规范：
+
+- frontmatter 可解析，且包含 `name` 和 `description`；
+- `name` 为 kebab-case，不超过 64 字符；
+- `description` 不超过 1024 字符，且不含 `<`、`>`；
+- `SKILL.md` 保持在 500 行以内（细节移到 `references/`）。
 
 ### 自动同步
 
